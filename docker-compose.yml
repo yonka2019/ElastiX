@@ -1,0 +1,16 @@
+services:
+  elastix:
+    image: elastix
+    container_name: elastix
+    ports:
+      - "5173:4000"
+    restart: unless-stopped
+    # Mirror the K8s ConfigMap mount with a host file so Docker and K8s share
+    # the same load path. server.js reads /etc/templates/templates.json at
+    # startup and inlines it into index.html.
+    #
+    # Edit ./public/templates.json on the host, then:
+    #   docker compose restart elastix
+    # to pick up the new catalog (the server inlines at process start).
+    volumes:
+      - ./public/templates.json:/etc/templates/templates.json:ro

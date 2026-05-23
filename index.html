@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>ElastiX</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <!--
+      The templates catalog is inlined here at pod startup by docker-entrypoint.sh.
+      It substitutes ${ELASTIX_TEMPLATES_JSON} with the contents of the mounted
+      ConfigMap (or the bundled fallback). The browser then reads the catalog
+      from this element — no separate HTTP request for templates.
+      In `npm run dev`, the placeholder stays literal; the store falls back to
+      fetching /templates.json from Vite's public/ folder.
+    -->
+    <script id="elastix-templates" type="application/json">${ELASTIX_TEMPLATES_JSON}</script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

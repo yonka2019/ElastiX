@@ -1,0 +1,116 @@
+# Deploys ElastiX with a tiny Node static server (no nginx). The templates
+# catalog comes from a ConfigMap mounted at /etc/templates. The Node server
+# reads that file at startup and inlines its JSON into index.html under
+# <script id="elastix-templates" type="application/json">; the browser reads
+# the catalog from that element — no HTTP request through any server is
+# specifically for the catalog.
+#
+# Inlining happens at process start, so ConfigMap changes require a pod
+# restart to be picked up by clients:
+#   kubectl rollout restart deployment/elastix
+#
+# To update the catalog:
+#   kubectl create configmap elastix-templates \
+#     --from-file=templates.json=./public/templates.json \
+#     --dry-run=client -o yaml | kubectl apply -f -
+#   kubectl rollout restart deployment/elastix
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elastix-templates
+data:
+  templates.json: |
+    [
+      {
+        "id": "tpl-active-status",
+        "name": "סטטוס פעיל",
+        "description": "מסמכים בסטטוס פעיל",
+        "query": { "term": { "status": "active" } }
+      },
+      {
+        "id": "tpl-last-24h",
+        "name": "24 שעות אחרונות",
+        "description": "טווח של 24 שעות אחרונות",
+        "query": { "range": { "@timestamp": { "gte": "now-24h" } } }
+      },
+      {
+        "id": "tpl-error-level",
+        "name": "רמת שגיאה",
+        "description": "רשומות לוג ברמת שגיאה",
+        "query": { "match": { "level": "error" } }
+      },
+      {
+        "id": "tpl-has-user",
+        "name": "מזהה משתמש קיים",
+        "description": "מסמכים שבהם השדה קיים",
+        "query": { "exists": { "field": "user.id" } }
+      },
+      {
+        "id": "tpl-prod-env",
+        "name": "סביבת ייצור",
+        "description": "מסמכים בסביבת ייצור",
+        "query": { "term": { "environment": "production" } }
+      }
+    ]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elastix
+  labels:
+    app: elastix
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elastix
+  template:
+    metadata:
+      labels:
+        app: elastix
+    spec:
+      containers:
+        - name: web
+          image: elastix:local            # replace with your registry path
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /index.html
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /index.html
+              port: http
+            periodSeconds: 30
+          volumeMounts:
+            # Mount the ConfigMap as a directory of files under /etc/templates.
+            # server.js reads /etc/templates/templates.json at startup and
+            # inlines its JSON into index.html. No server (nginx or otherwise)
+            # exposes the catalog as its own HTTP resource.
+            - name: templates
+              mountPath: /etc/templates
+              readOnly: true
+      volumes:
+        - name: templates
+          configMap:
+            name: elastix-templates
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elastix
+spec:
+  selector:
+    app: elastix
+  ports:
+    - port: 80
+      targetPort: http   # → 4000 on the pod
+      name: http
+  type: ClusterIP

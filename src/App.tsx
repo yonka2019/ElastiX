@@ -1,0 +1,599 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  CollisionDetection,
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  UniqueIdentifier,
+  pointerWithin,
+  rectIntersection,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import { useStore, locateItemPublic, blockContaining, getItem, buildQuery } from './store';
+import { ModeBlockPalette, LEAF_PALETTE } from './components/ModeBlockPalette';
+import { ElastixLogo, ModeIcon } from './components/icons';
+import { TemplateLibrary } from './components/TemplateLibrary';
+import { Builder } from './components/Builder';
+import { QueryOutput } from './components/QueryOutput';
+import type { BoolMode } from './types';
+import { MODE_META } from './types';
+
+type PaletteLeafDrag =
+  | {
+      kind: 'palette-leaf';
+      leafId: 'custom';
+      leafKind: 'custom';
+      payload: { name: string; query: Record<string, unknown> };
+    }
+  | {
+      kind: 'palette-leaf';
+      leafId: 'timestamp-range';
+      leafKind: 'timestamp';
+      payload: { field: string; gte?: string; lte?: string };
+    }
+  | {
+      kind: 'palette-leaf';
+      leafId: 'term';
+      leafKind: 'term';
+      payload: { field: string; value: string };
+    }
+  | {
+      kind: 'palette-leaf';
+      leafId: 'match';
+      leafKind: 'match';
+      payload: { field: string; value: string };
+    }
+  | {
+      kind: 'palette-leaf';
+      leafId: 'terms';
+      leafKind: 'terms';
+      payload: { field: string; values: string[] };
+    }
+  | {
+      kind: 'palette-leaf';
+      leafId: 'exists';
+      leafKind: 'exists';
+      payload: { field: string };
+    };
+
+type ActiveDrag =
+  | { kind: 'palette-block'; mode: BoolMode }
+  | PaletteLeafDrag
+  | { kind: 'block'; blockId: string; mode: BoolMode }
+  | { kind: 'template'; templateId: string }
+  | { kind: 'item'; instanceId: string; sectionMode: BoolMode }
+  | null;
+
+export default function App() {
+  const templates = useStore((s) => s.templates);
+  const blocks = useStore((s) => s.blocks);
+  const addBlock = useStore((s) => s.addBlock);
+  const addNestedBlock = useStore((s) => s.addNestedBlock);
+  const reorderBlocks = useStore((s) => s.reorderBlocks);
+  const addTemplateToBlock = useStore((s) => s.addTemplateToBlock);
+  const addCustomToBlock = useStore((s) => s.addCustomToBlock);
+  const addTimestampToBlock = useStore((s) => s.addTimestampToBlock);
+  const addTermToBlock = useStore((s) => s.addTermToBlock);
+  const addMatchToBlock = useStore((s) => s.addMatchToBlock);
+  const addTermsToBlock = useStore((s) => s.addTermsToBlock);
+  const addExistsToBlock = useStore((s) => s.addExistsToBlock);
+  const setPendingEditId = useStore((s) => s.setPendingEditId);
+  const moveItemToBlock = useStore((s) => s.moveItemToBlock);
+  const reorderItemInBlock = useStore((s) => s.reorderItemInBlock);
+  const loadTemplates = useStore((s) => s.loadTemplates);
+  const loadConfig = useStore((s) => s.loadConfig);
+
+  // Hydrate templates from /api/templates once on mount.
+  useEffect(() => {
+    void loadTemplates();
+    void loadConfig();
+  }, [loadTemplates, loadConfig]);
+
+  const [activeDrag, setActiveDrag] = useState<ActiveDrag>(null);
+
+  // Sticky over-target so the cursor sitting near a nested block's top edge
+  // doesn't flip-flop the highlight between the outer block-zone and the
+  // inner bool-item with every pixel of mouse jitter. See collisionDetection.
+  const lastOverIdRef = useRef<UniqueIdentifier | null>(null);
+  const HYSTERESIS_PX = 8;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
+  );
+
+  // Prefer pointer-within so nesting only happens when the cursor is actually
+  // inside a block-zone. closestCenter would always pick the geometrically
+  // nearest block (its center beats the huge canvas's center), causing a
+  // palette drop on empty canvas to nest into a neighbouring block.
+  // Fall back to rectIntersection so sortable item reordering still works in
+  // the small gaps between items.
+  //
+  // For "drop INTO a block" drags (palette-block, palette-leaf, template),
+  // we always collapse to ONE target each frame: an inner item if directly
+  // hovered, else the innermost block-zone, else the block. Without this,
+  // pointerWithin returns both the block sortable and its child block-zone
+  // every frame, and the over-target flicks between them — making the
+  // sibling blocks vibrate as the SortableContext repeatedly thinks the
+  // dragged thing is "swapping" with the block.
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    const hits = pointerWithin(args);
+    if (hits.length === 0) {
+      lastOverIdRef.current = null;
+      return rectIntersection(args);
+    }
+
+    const activeKind = (args.active.data.current as { kind?: string } | undefined)?.kind;
+    const dropIntoBlock =
+      activeKind === 'palette-block' ||
+      activeKind === 'palette-leaf' ||
+      activeKind === 'template';
+
+    if (dropIntoBlock) {
+      const kindOf = (h: (typeof hits)[number]): string | undefined =>
+        (h.data?.droppableContainer.data.current as { kind?: string } | undefined)?.kind;
+      const areaOf = (h: (typeof hits)[number]): number => {
+        const r = h.data?.droppableContainer.rect.current;
+        return r ? r.width * r.height : Number.POSITIVE_INFINITY;
+      };
+
+      // Pick the smallest-area hit among items and block-zones. Smallest area
+      // is unambiguously the most-specific drop target geometrically — a
+      // block-zone always has a smaller rect than its wrapping bool-item, and
+      // a doubly-nested block-zone is smaller still.
+      let best: (typeof hits)[number] | null = null;
+      let bestArea = Number.POSITIVE_INFINITY;
+      for (const h of hits) {
+        const k = kindOf(h);
+        if (k !== 'item' && k !== 'block-zone') continue;
+        const a = areaOf(h);
+        if (a < bestArea) {
+          best = h;
+          bestArea = a;
+        }
+      }
+
+      // Hysteresis: if the previously chosen target is still under the cursor
+      // and the new "best" candidate is different, only switch when the cursor
+      // is sufficiently INSIDE the new candidate. Without this, sub-pixel
+      // mouse jitter at the top edge of a nested block flips the over between
+      // the outer block-zone and the inner bool-item every frame — the
+      // highlight ring, accent line, and body bg all flicker (the "vibration"
+      // the user sees).
+      if (best && lastOverIdRef.current != null && lastOverIdRef.current !== best.id) {
+        const lastHit = hits.find((h) => h.id === lastOverIdRef.current);
+        if (lastHit) {
+          const r = best.data?.droppableContainer.rect.current;
+          const p = args.pointerCoordinates;
+          if (r && p) {
+            const inset = Math.min(
+              p.x - r.left,
+              r.right - p.x,
+              p.y - r.top,
+              r.bottom - p.y
+            );
+            if (inset < HYSTERESIS_PX) {
+              return [lastHit];
+            }
+          }
+        }
+      }
+
+      if (best) {
+        lastOverIdRef.current = best.id;
+        return [best];
+      }
+
+      // Symmetric hysteresis on the LEAVING direction. The check above sticks
+      // to the previous target when ENTERING a new block-zone/item; this
+      // sticks throughout the gap once the pointer has slipped OUT of one.
+      // Without this, hovering in the gap between top-level blocks flips the
+      // over between block-zone (softBgStrong + ring) and builder-canvas
+      // (blue bg) every frame — the vibration the user reports. The stick
+      // releases naturally when the cursor enters another block (the entering
+      // hysteresis above picks the new target) or leaves the canvas entirely
+      // (the empty-hits early return at the top clears lastOver).
+      if (lastOverIdRef.current != null) {
+        const prev = args.droppableContainers.find(
+          (c) => c.id === lastOverIdRef.current
+        );
+        const prevKind = (prev?.data.current as { kind?: string } | undefined)?.kind;
+        if (prev && (prevKind === 'item' || prevKind === 'block-zone')) {
+          return [{ id: prev.id, data: { droppableContainer: prev, value: 0 } }];
+        }
+      }
+
+      const block = hits.find((h) => kindOf(h) === 'block');
+      if (block) {
+        lastOverIdRef.current = block.id;
+        return [block];
+      }
+
+      const canvas = hits.find((h) => kindOf(h) === 'builder-canvas');
+      if (canvas) {
+        lastOverIdRef.current = canvas.id;
+        return [canvas];
+      }
+    }
+
+    return hits;
+  }, []);
+
+  function handleDragStart(event: DragStartEvent) {
+    const data = event.active.data.current as ActiveDrag;
+    if (!data) return;
+    lastOverIdRef.current = null;
+    setActiveDrag(data);
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    setActiveDrag(null);
+    lastOverIdRef.current = null;
+    if (!over) return;
+
+    const activeData = active.data.current as
+      | { kind: 'palette-block'; mode: BoolMode }
+      | PaletteLeafDrag
+      | { kind: 'block'; blockId: string; mode: BoolMode }
+      | { kind: 'template'; templateId: string }
+      | { kind: 'item'; instanceId: string; sectionMode: BoolMode }
+      | undefined;
+    const overData = over.data.current as
+      | { kind: 'builder-canvas' }
+      | { kind: 'block'; blockId: string; mode: BoolMode }
+      | { kind: 'block-zone'; blockId: string; mode: BoolMode }
+      | { kind: 'item'; instanceId: string; sectionMode: BoolMode }
+      | undefined;
+    if (!activeData || !overData) return;
+
+    // 1) Palette mode-block → builder.
+    //    - Onto canvas: append as a new top-level block.
+    //    - Onto a block-zone or block: nest inside that block.
+    //    - Onto an item: nest inside the item's containing block, at the item's position.
+    if (activeData.kind === 'palette-block') {
+      if (overData.kind === 'builder-canvas') {
+        addBlock(activeData.mode);
+        return;
+      }
+      if (overData.kind === 'block-zone' || overData.kind === 'block') {
+        addNestedBlock(overData.blockId, activeData.mode);
+        return;
+      }
+      if (overData.kind === 'item') {
+        // If the over item is itself a nested block (bool wrapper), nest INSIDE
+        // it — same intent as dropping on the body. Only fall back to
+        // "insert at this leaf's index in parent" when the over is a real leaf.
+        const item = getItem(blocks, overData.instanceId);
+        if (item?.source.kind === 'bool') {
+          addNestedBlock(item.source.block.id, activeData.mode);
+          return;
+        }
+        const containing = blockContaining(blocks, overData.instanceId);
+        if (containing) {
+          const loc = locateItemPublic(blocks, overData.instanceId);
+          addNestedBlock(containing.id, activeData.mode, loc?.index);
+        }
+      }
+      return;
+    }
+
+    // 2) Existing block → reorder via block header drag handle.
+    if (activeData.kind === 'block') {
+      if (overData.kind === 'block') {
+        const from = blocks.findIndex((b) => b.id === activeData.blockId);
+        const to = blocks.findIndex((b) => b.id === overData.blockId);
+        if (from >= 0 && to >= 0 && from !== to) reorderBlocks(from, to);
+      }
+      return;
+    }
+
+    // 3) Palette leaf clause (custom / timestamp range) → drop into a block.
+    //    Only meaningful inside a bool container, so canvas drops are ignored.
+    //    After insertion we flag the new instance for auto-open so the row
+    //    enters edit mode immediately.
+    if (activeData.kind === 'palette-leaf') {
+      const addAt = (blockId: string, atIndex?: number): string | null => {
+        if (activeData.leafKind === 'timestamp') {
+          return addTimestampToBlock(blockId, activeData.payload, atIndex);
+        }
+        if (activeData.leafKind === 'term') {
+          return addTermToBlock(blockId, activeData.payload, atIndex);
+        }
+        if (activeData.leafKind === 'match') {
+          return addMatchToBlock(blockId, activeData.payload, atIndex);
+        }
+        if (activeData.leafKind === 'terms') {
+          return addTermsToBlock(blockId, activeData.payload, atIndex);
+        }
+        if (activeData.leafKind === 'exists') {
+          return addExistsToBlock(blockId, activeData.payload, atIndex);
+        }
+        return addCustomToBlock(blockId, activeData.payload, atIndex);
+      };
+      if (overData.kind === 'block-zone' || overData.kind === 'block') {
+        const id = addAt(overData.blockId);
+        if (id) setPendingEditId(id);
+        return;
+      }
+      if (overData.kind === 'item') {
+        const item = getItem(blocks, overData.instanceId);
+        if (item?.source.kind === 'bool') {
+          const id = addAt(item.source.block.id);
+          if (id) setPendingEditId(id);
+          return;
+        }
+        const containing = blockContaining(blocks, overData.instanceId);
+        if (containing) {
+          const loc = locateItemPublic(blocks, overData.instanceId);
+          const id = addAt(containing.id, loc?.index);
+          if (id) setPendingEditId(id);
+        }
+      }
+      return;
+    }
+
+    // 4) Template from library → drop into a specific block.
+    if (activeData.kind === 'template') {
+      if (overData.kind === 'block-zone' || overData.kind === 'block') {
+        addTemplateToBlock(overData.blockId, activeData.templateId);
+        return;
+      }
+      if (overData.kind === 'item') {
+        const item = getItem(blocks, overData.instanceId);
+        if (item?.source.kind === 'bool') {
+          addTemplateToBlock(item.source.block.id, activeData.templateId);
+          return;
+        }
+        const containing = blockContaining(blocks, overData.instanceId);
+        if (containing) {
+          const loc = locateItemPublic(blocks, overData.instanceId);
+          addTemplateToBlock(containing.id, activeData.templateId, loc?.index);
+        }
+      }
+      return;
+    }
+
+    // 4) Item drag — reorder within block, or move to another block (any depth).
+    if (activeData.kind === 'item') {
+      if (overData.kind === 'item') {
+        if (activeData.instanceId === overData.instanceId) return;
+        const src = locateItemPublic(blocks, activeData.instanceId);
+        const dst = locateItemPublic(blocks, overData.instanceId);
+        if (!src || !dst) return;
+        if (src.parentBlockId === dst.parentBlockId) {
+          if (src.index !== dst.index) {
+            reorderItemInBlock(src.parentBlockId, src.index, dst.index);
+          }
+        } else {
+          moveItemToBlock(activeData.instanceId, dst.parentBlockId, dst.index);
+        }
+        return;
+      }
+      if (overData.kind === 'block-zone' || overData.kind === 'block') {
+        const containing = blockContaining(blocks, activeData.instanceId);
+        if (!containing || containing.id !== overData.blockId) {
+          moveItemToBlock(activeData.instanceId, overData.blockId);
+        }
+      }
+    }
+  }
+
+  // Overlay content
+  const overlayContent = (() => {
+    if (!activeDrag) return null;
+    if (activeDrag.kind === 'template') {
+      const t = templates.find((x) => x.id === activeDrag.templateId);
+      if (!t) return null;
+      return (
+        <div className="max-w-[260px] truncate rounded-full border border-blue-200 bg-white px-3 py-1.5 text-sm font-semibold text-neutral-900 shadow-xl ring-2 ring-blue-200">
+          {t.name}
+        </div>
+      );
+    }
+    if (activeDrag.kind === 'palette-leaf') {
+      const spec = LEAF_PALETTE.find((s) => s.id === activeDrag.leafId);
+      if (!spec) return null;
+      let detail = '';
+      if (activeDrag.leafKind === 'timestamp') {
+        detail = `${activeDrag.payload.gte ?? '…'} → ${activeDrag.payload.lte ?? '…'}`;
+      } else if (activeDrag.leafKind === 'custom') {
+        detail = activeDrag.payload.name;
+      } else if (activeDrag.leafKind === 'term') {
+        detail = activeDrag.payload.field || 'configure…';
+      } else if (activeDrag.leafKind === 'match') {
+        detail = activeDrag.payload.field || 'configure…';
+      } else if (activeDrag.leafKind === 'terms') {
+        detail = activeDrag.payload.field || 'configure…';
+      } else if (activeDrag.leafKind === 'exists') {
+        detail = activeDrag.payload.field || 'configure…';
+      }
+      return (
+        <div className="flex w-72 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-xl ring-2 ring-blue-200">
+          <span className={`flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 font-mono text-sm ${spec.accent}`}>
+            {spec.glyph}
+          </span>
+          <span className={`font-mono text-[13px] font-bold tracking-wide ${spec.accent}`}>
+            {spec.label}
+          </span>
+          <span className="ml-auto truncate font-mono text-[10px] text-neutral-400">
+            {detail}
+          </span>
+        </div>
+      );
+    }
+    if (activeDrag.kind === 'palette-block') {
+      const meta = MODE_META[activeDrag.mode];
+      return (
+        <div className="w-52 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl ring-2 ring-blue-200">
+          <div className={`${meta.headerSolid} flex items-center gap-2 px-3 py-2 text-white`}>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+              <ModeIcon mode={activeDrag.mode} className="h-4 w-4 text-white" />
+            </span>
+            <span className="font-mono text-[13px] font-bold tracking-wide">{meta.label}</span>
+          </div>
+        </div>
+      );
+    }
+    if (activeDrag.kind === 'item') {
+      const item = getItem(blocks, activeDrag.instanceId);
+      if (!item) return null;
+      const sectionMeta = MODE_META[activeDrag.sectionMode];
+      if (item.source.kind === 'bool') {
+        const blockMeta = MODE_META[item.source.block.mode];
+        return (
+          <div className="w-[420px] overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl ring-2 ring-blue-200">
+            <div className={`${blockMeta.headerSolid} flex items-center gap-2 px-3 py-2 text-white`}>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+                <ModeIcon mode={item.source.block.mode} className="h-4 w-4 text-white" />
+              </span>
+              <span className="font-mono text-[13px] font-bold tracking-wide">
+                {blockMeta.label}
+              </span>
+              <span className="ml-auto font-mono text-[11px] text-white/80">
+                {item.source.block.items.length} item
+                {item.source.block.items.length === 1 ? '' : 's'}
+              </span>
+            </div>
+          </div>
+        );
+      }
+      let name = 'unknown';
+      if (item.source.kind === 'template') {
+        const { templateId } = item.source;
+        name = templates.find((t) => t.id === templateId)?.name ?? 'unknown';
+      } else if (item.source.kind === 'custom') {
+        name = item.source.name;
+      }
+      return (
+        <div className="flex w-[420px] items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 py-2.5 shadow-xl ring-2 ring-blue-200">
+          <span className={`h-2 w-2 rounded-full ${sectionMeta.dot}`} />
+          <span className="text-sm font-semibold text-neutral-900">{name}</span>
+          <span className={`ml-auto font-mono text-[10px] ${sectionMeta.accentText}`}>
+            from {sectionMeta.label}
+          </span>
+        </div>
+      );
+    }
+    if (activeDrag.kind === 'block') {
+      const block = blocks.find((b) => b.id === activeDrag.blockId);
+      if (!block) return null;
+      const meta = MODE_META[block.mode];
+      return (
+        <div className={`w-72 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl ring-2 ring-blue-200`}>
+          <div className={`${meta.headerSolid} flex items-center gap-2 px-3 py-2 text-white`}>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+              <ModeIcon mode={block.mode} className="h-4 w-4 text-white" />
+            </span>
+            <span className="font-mono text-[13px] font-bold tracking-wide">{meta.label}</span>
+            <span className="ml-auto font-mono text-[11px] text-white/80">
+              {block.items.length} item{block.items.length === 1 ? '' : 's'}
+            </span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  })();
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={collisionDetection}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => {
+        setActiveDrag(null);
+        lastOverIdRef.current = null;
+      }}
+    >
+      <div className="flex h-screen flex-col bg-neutral-50">
+        <Header />
+        <div className="flex min-h-0 flex-1">
+          <ModeBlockPalette
+            activeDragMode={activeDrag?.kind === 'palette-block' ? activeDrag.mode : null}
+            activeDragLeaf={activeDrag?.kind === 'palette-leaf' ? activeDrag.leafId : null}
+          />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <QueryOutput />
+            <Builder
+              isDraggingTemplate={activeDrag?.kind === 'template'}
+              isDraggingPaletteBlock={activeDrag?.kind === 'palette-block'}
+              isDraggingItem={activeDrag?.kind === 'item'}
+              isDraggingIntoBlock={
+                activeDrag?.kind === 'palette-block' ||
+                activeDrag?.kind === 'palette-leaf' ||
+                activeDrag?.kind === 'template'
+              }
+            />
+          </div>
+          <TemplateLibrary
+            activeDragId={activeDrag?.kind === 'template' ? `tpl:${activeDrag.templateId}` : null}
+          />
+        </div>
+      </div>
+
+      <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(.2,.7,.2,1)' }}>
+        {overlayContent}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+function Header() {
+  const templates = useStore((s) => s.templates);
+  const blocks = useStore((s) => s.blocks);
+  const config = useStore((s) => s.config);
+
+  const openInKibana = () => {
+    if (!config.kibanaUrl) return;
+    const built = buildQuery(templates, blocks) as { query?: Record<string, unknown> };
+    const inner = built.query ?? { match_all: {} };
+    // Dev Tools console works without a data view and accepts arbitrary
+    // index/query — copy-paste-runnable in Kibana itself.
+    const consoleCmd = `GET ${config.indexPattern}/_search\n${JSON.stringify({ query: inner }, null, 2)}`;
+    const url = `${config.kibanaUrl}/app/dev_tools#/console?load_from=data:text/plain,${encodeURIComponent(consoleCmd)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <header className="relative flex shrink-0 items-center gap-3 border-b border-neutral-200 bg-white px-5 py-3">
+      <span
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-emerald-500 via-sky-500 to-rose-500"
+      />
+      <ElastixLogo className="h-7 w-7" />
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-base font-semibold text-neutral-900">ElastiX</span>
+        <span className="font-mono text-[10px] uppercase tracking-wider text-neutral-400">
+          by yonka
+        </span>
+      </div>
+      <div className="hidden text-xs text-neutral-500 sm:block">
+        Drag a block from the left, drop templates from the right under each block, or write
+        custom clauses inside.
+      </div>
+      <div className="ml-auto flex items-center gap-2">
+        <button
+          onClick={openInKibana}
+          disabled={!config.kibanaUrl}
+          className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-400 disabled:hover:bg-white"
+          title={
+            config.kibanaUrl
+              ? `Open this query in ${config.kibanaUrl}`
+              : 'Set KIBANA_URL in .env to enable'
+          }
+        >
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M14 4h6v6" />
+            <path d="M10 14L20 4" />
+            <path d="M20 14v6H4V4h6" />
+          </svg>
+          Open in Kibana
+        </button>
+      </div>
+    </header>
+  );
+}

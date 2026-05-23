@@ -1,0 +1,32 @@
+[
+  {
+    "id": "tpl-active-status",
+    "name": "סטטוס פעיל",
+    "description": "מסמכים בסטטוס פעיל",
+    "query": { "term": { "status": "active" } }
+  },
+  {
+    "id": "tpl-last-24h",
+    "name": "24 שעות אחרונות",
+    "description": "טווח של 24 שעות אחרונות",
+    "query": { "range": { "@timestamp": { "gte": "now-24h" } } }
+  },
+  {
+    "id": "tpl-error-level",
+    "name": "רמת שגיאה",
+    "description": "רשומות לוג ברמת שגיאה",
+    "query": { "match": { "level": "error" } }
+  },
+  {
+    "id": "tpl-has-user",
+    "name": "מזהה משתמש קיים",
+    "description": "מסמכים שבהם השדה קיים",
+    "query": { "exists": { "field": "user.id" } }
+  },
+  {
+    "id": "tpl-prod-env",
+    "name": "סביבת ייצור",
+    "description": "מסמכים בסביבת ייצור",
+    "query": { "term": { "environment": "production" } }
+  }
+]
