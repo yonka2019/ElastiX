@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   CollisionDetection,
   DndContext,
@@ -98,7 +98,15 @@ export default function App() {
   // doesn't flip-flop the highlight between the outer block-zone and the
   // inner bool-item with every pixel of mouse jitter. See collisionDetection.
   const lastOverIdRef = useRef<UniqueIdentifier | null>(null);
-  const HYSTERESIS_PX = 8;
+  // Entering: must be this far INSIDE a new candidate to switch off the
+  // previous target. Leaving: must be this far OUTSIDE the previous target
+  // (vertically, past the gap-4 = 16px between sibling top-level blocks)
+  // before releasing the stick. The leaving threshold is generous on purpose
+  // — the visible gap area is sticky in its entirety so the over doesn't
+  // flicker between block-zone and builder-canvas when the cursor rests in
+  // the gap.
+  const ENTER_HYSTERESIS_PX = 8;
+  const LEAVE_HYSTERESIS_PX = 24;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
@@ -118,7 +126,11 @@ export default function App() {
   // every frame, and the over-target flicks between them — making the
   // sibling blocks vibrate as the SortableContext repeatedly thinks the
   // dragged thing is "swapping" with the block.
-  const collisionDetection: CollisionDetection = useCallback((args) => {
+  // Not memoized — DndContext calls this inline in its render path and does
+  // not use referential equality, so re-creating each render is free. Avoiding
+  // useCallback also lets HMR pick up edits to this body without a full reload
+  // (an empty deps array would keep the cached closure indefinitely).
+  const collisionDetection: CollisionDetection = (args) => {
     const hits = pointerWithin(args);
     if (hits.length === 0) {
       lastOverIdRef.current = null;
@@ -174,7 +186,7 @@ export default function App() {
               p.y - r.top,
               r.bottom - p.y
             );
-            if (inset < HYSTERESIS_PX) {
+            if (inset < ENTER_HYSTERESIS_PX) {
               return [lastHit];
             }
           }
@@ -188,20 +200,27 @@ export default function App() {
 
       // Symmetric hysteresis on the LEAVING direction. The check above sticks
       // to the previous target when ENTERING a new block-zone/item; this
-      // sticks throughout the gap once the pointer has slipped OUT of one.
-      // Without this, hovering in the gap between top-level blocks flips the
-      // over between block-zone (softBgStrong + ring) and builder-canvas
-      // (blue bg) every frame — the vibration the user reports. The stick
-      // releases naturally when the cursor enters another block (the entering
-      // hysteresis above picks the new target) or leaves the canvas entirely
-      // (the empty-hits early return at the top clears lastOver).
-      if (lastOverIdRef.current != null) {
+      // sticks when the pointer has slipped OUT of one but is still within
+      // LEAVE_HYSTERESIS_PX of its rect. Without this, hovering in the gap
+      // between top-level blocks flips the over between block-zone
+      // (softBgStrong + ring) and builder-canvas (blue bg) every frame.
+      // 24px > gap-4 (16px) so the entire visible gap is sticky; the user
+      // has to move clearly past the gap area to switch to builder-canvas.
+      if (lastOverIdRef.current != null && args.pointerCoordinates) {
         const prev = args.droppableContainers.find(
           (c) => c.id === lastOverIdRef.current
         );
         const prevKind = (prev?.data.current as { kind?: string } | undefined)?.kind;
         if (prev && (prevKind === 'item' || prevKind === 'block-zone')) {
-          return [{ id: prev.id, data: { droppableContainer: prev, value: 0 } }];
+          const r = prev.rect.current;
+          const p = args.pointerCoordinates;
+          if (r) {
+            const dx = Math.max(r.left - p.x, 0, p.x - r.right);
+            const dy = Math.max(r.top - p.y, 0, p.y - r.bottom);
+            if (Math.hypot(dx, dy) < LEAVE_HYSTERESIS_PX) {
+              return [{ id: prev.id, data: { droppableContainer: prev, value: 0 } }];
+            }
+          }
         }
       }
 
@@ -219,7 +238,7 @@ export default function App() {
     }
 
     return hits;
-  }, []);
+  };
 
   function handleDragStart(event: DragStartEvent) {
     const data = event.active.data.current as ActiveDrag;

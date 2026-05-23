@@ -56,10 +56,7 @@ export function Builder({
 
       <div
         ref={setNodeRef}
-        className={[
-          'flex-1 overflow-y-auto px-5 py-5 transition-colors',
-          isOver && isDraggingPaletteBlock ? 'bg-blue-50/50' : '',
-        ].join(' ')}
+        className="flex-1 overflow-y-auto px-5 py-5"
       >
         {empty ? (
           <EmptyState

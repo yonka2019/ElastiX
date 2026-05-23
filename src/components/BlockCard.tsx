@@ -88,7 +88,9 @@ function BlockCardImpl({
 
   const empty = block.items.length === 0;
   // Any "drop INTO a block" drag should pulse the body hint, not only template/item drags.
-  const showsHint = (isDraggingTemplate || isDraggingItem || isDraggingIntoBlock) && !isOver;
+  const isDragIntoBlockActive =
+    isDraggingTemplate || isDraggingItem || isDraggingIntoBlock;
+  const showsHint = isDragIntoBlockActive && !isOver;
 
   const onRemove = () => {
     if (nested) removeItem(nested.instanceId);
@@ -245,9 +247,21 @@ function BlockCardImpl({
                   )
                 )}
               </div>
-              {showsHint && (
+              {/* Keep the hint MOUNTED for the entire drag and only toggle
+                  visibility — unmounting it on isOver was a feedback loop:
+                  cursor over hint → isOver=true → hint unmounted → block-zone
+                  shrinks by ~32px → cursor now outside block-zone → isOver=
+                  false → hint remounted → block-zone grows back → cursor
+                  inside again. The user perceived this as the focus jittering
+                  rapidly between this box and the next one. */}
+              {isDragIntoBlockActive && (
                 <div
-                  className={`mt-2 rounded-md border border-dashed ${meta.softBorder} bg-white/60 px-3 py-1.5 text-center text-[11px] ${meta.accentText}`}
+                  className={[
+                    'mt-2 rounded-md border border-dashed bg-white/60 px-3 py-1.5 text-center text-[11px]',
+                    meta.softBorder,
+                    meta.accentText,
+                    isOver ? 'invisible' : '',
+                  ].join(' ')}
                 >
                   ↓ drop under {displayName}
                 </div>
