@@ -109,4 +109,9 @@ export type ModeBlock = {
   // Optional user-provided name shown in the block header. Falls back to
   // MODE_META[mode].label when not set.
   name?: string;
+  // When present, the block represents an Elasticsearch `nested` query.
+  // The items are combined via the block's mode into an inner bool, then
+  // wrapped: { nested: { path, query: { bool: ... } } }. The whole block
+  // contributes as a single clause to the parent's `mode` bucket.
+  nested?: { path: string };
 };

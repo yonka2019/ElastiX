@@ -262,6 +262,7 @@ export const LEAF_PALETTE: LeafSpec[] = [
 type Props = {
   activeDragMode: BoolMode | null;
   activeDragLeaf: LeafPaletteId | null;
+  activeDragNestedBlock: boolean;
 };
 
 function PaletteCard({ mode, isDragging }: { mode: BoolMode; isDragging: boolean }) {
@@ -285,6 +286,34 @@ function PaletteCard({ mode, isDragging }: { mode: BoolMode; isDragging: boolean
           <ModeIcon mode={mode} className="h-4 w-4 text-white" />
         </span>
         <span className="font-mono text-[13px] font-bold tracking-wide">{meta.label}</span>
+      </div>
+    </div>
+  );
+}
+
+function PaletteNestedCard({ isDragging }: { isDragging: boolean }) {
+  const { setNodeRef, attributes, listeners } = useDraggable({
+    id: 'palette-block:nested',
+    data: { kind: 'palette-block-nested' },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={`group relative cursor-grab select-none overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow active:cursor-grabbing dark:border-neutral-700 dark:bg-neutral-900 ${
+        isDragging ? 'opacity-30' : ''
+      }`}
+      title="Drag to add a nested query block (path + inner items)"
+    >
+      <div className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-500 px-3 py-2 text-white">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+          <svg viewBox="0 0 24 24" className="h-4 w-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <rect x="8" y="8" width="11" height="11" rx="1.5" />
+          </svg>
+        </span>
+        <span className="font-mono text-[13px] font-bold tracking-wide">nested</span>
       </div>
     </div>
   );
@@ -325,7 +354,7 @@ function LeafCard({ spec, isDragging }: { spec: LeafSpec; isDragging: boolean })
   );
 }
 
-export function ModeBlockPalette({ activeDragMode, activeDragLeaf }: Props) {
+export function ModeBlockPalette({ activeDragMode, activeDragLeaf, activeDragNestedBlock }: Props) {
   return (
     <aside className="flex h-full w-56 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950">
       <div className="border-b border-neutral-200 bg-white px-3 py-3 dark:border-neutral-800 dark:bg-neutral-900">
@@ -336,6 +365,7 @@ export function ModeBlockPalette({ activeDragMode, activeDragLeaf }: Props) {
         {MODE_ORDER.map((m) => (
           <PaletteCard key={m} mode={m} isDragging={activeDragMode === m} />
         ))}
+        <PaletteNestedCard isDragging={activeDragNestedBlock} />
 
         <div className="mt-3 flex items-center gap-2 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
           <span>Clauses</span>

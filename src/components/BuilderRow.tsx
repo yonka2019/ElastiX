@@ -191,7 +191,8 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
   const isWildcard = item.source.kind === 'wildcard';
   const isTerms = item.source.kind === 'terms';
   const isExists = item.source.kind === 'exists';
-  const editable = isCustom || isTimestamp || isTerm || isMatch || isWildcard || isTerms || isExists;
+  const editable =
+    isCustom || isTimestamp || isTerm || isMatch || isWildcard || isTerms || isExists;
 
   let label: string;
   let description: string | undefined;

@@ -94,6 +94,8 @@ type StoreState = {
     atIndex?: number
   ) => string | null;
   updateWildcardItem: (instanceId: string, patch: { title?: string; field?: string; value?: string }) => void;
+  addNestedBlockTopLevel: (atIndex?: number) => string;
+  setBlockPath: (blockId: string, path: string) => void;
   updateCustomItem: (
     instanceId: string,
     patch: { name?: string; query?: Record<string, unknown> }
@@ -428,6 +430,27 @@ export const useStore = create<StoreState>()(
           }),
         }));
         return added ? instanceId : null;
+      },
+
+      addNestedBlockTopLevel: (atIndex) => {
+        const id = `blk-${uuidv4().slice(0, 8)}`;
+        set((s) => ({
+          blocks: insertAt(
+            s.blocks,
+            { id, mode: 'must', items: [], nested: { path: '' } },
+            atIndex
+          ),
+        }));
+        return id;
+      },
+
+      setBlockPath: (blockId, path) => {
+        set((s) => ({
+          blocks: updateBlockById(s.blocks, blockId, (b) => {
+            if (!b.nested) return b;
+            return { ...b, nested: { path } };
+          }),
+        }));
       },
 
       updateWildcardItem: (instanceId, patch) => {
@@ -897,9 +920,25 @@ function makeBoolInnerWithMap(
     must_not: [],
   };
   for (const block of bs) {
-    for (const item of block.items) {
-      const q = resolveItemWithMap(byId, item);
-      if (q) buckets[block.mode].push(q);
+    if (block.nested) {
+      // Nested block: build the inner clauses as a bool of items combined
+      // under the block's own mode, wrap in {nested: ...}, and contribute
+      // as a single clause to the parent's mode bucket.
+      const path = block.nested.path.trim();
+      if (!path) continue;
+      const innerClauses: Array<Record<string, unknown>> = [];
+      for (const item of block.items) {
+        const q = resolveItemWithMap(byId, item);
+        if (q) innerClauses.push(q);
+      }
+      if (innerClauses.length === 0) continue;
+      const innerBool = { bool: { [block.mode]: innerClauses } };
+      buckets[block.mode].push({ nested: { path, query: innerBool } });
+    } else {
+      for (const item of block.items) {
+        const q = resolveItemWithMap(byId, item);
+        if (q) buckets[block.mode].push(q);
+      }
     }
   }
   const out: Record<string, unknown> = {};

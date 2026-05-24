@@ -39,8 +39,13 @@ function BlockCardImpl({
   const removeItem = useStore((s) => s.removeItem);
   const removeBlock = useStore((s) => s.removeBlock);
   const renameBlock = useStore((s) => s.renameBlock);
+  const setBlockPath = useStore((s) => s.setBlockPath);
   const templates = useStore((s) => s.templates);
   const { open: openPreview } = usePreview();
+  const isNested = block.nested !== undefined;
+  const headerGradient = isNested
+    ? 'bg-gradient-to-r from-orange-600 to-orange-500'
+    : meta.headerSolid;
 
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(block.name ?? '');
@@ -123,8 +128,9 @@ function BlockCardImpl({
           className="pointer-events-none absolute inset-x-0 top-0 z-10 h-1 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]"
         />
       )}
-      {/* Block header — colored, with drag handle and remove */}
-      <header className={`${meta.headerSolid} flex items-center gap-3 px-4 py-3 text-white`}>
+      {/* Block header — colored (orange for nested), with drag handle and remove */}
+      <header className={`${headerGradient} flex flex-col gap-1 px-4 py-3 text-white`}>
+      <div className="flex items-center gap-3">
         <span
           {...attributes}
           {...listeners}
@@ -236,6 +242,19 @@ function BlockCardImpl({
         >
           ×
         </button>
+        </div>
+        {isNested && block.nested && (
+          <div className="flex items-center gap-2 pl-1 text-[12px]">
+            <span className="font-mono text-white/80">path:</span>
+            <input
+              value={block.nested.path}
+              onChange={(e) => setBlockPath(block.id, e.target.value)}
+              placeholder="comments"
+              spellCheck={false}
+              className="min-w-0 flex-1 rounded border border-white/40 bg-white/10 px-1.5 py-0.5 font-mono text-[12px] text-white placeholder-white/60 focus:border-white focus:outline-none"
+            />
+          </div>
+        )}
       </header>
 
       {/* Block body with drop zone. Hidden when collapsed unless a drag is

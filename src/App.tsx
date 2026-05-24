@@ -70,6 +70,7 @@ type PaletteLeafDrag =
 
 type ActiveDrag =
   | { kind: 'palette-block'; mode: BoolMode }
+  | { kind: 'palette-block-nested' }
   | PaletteLeafDrag
   | { kind: 'block'; blockId: string; mode: BoolMode }
   | { kind: 'template'; templateId: string }
@@ -90,6 +91,7 @@ export default function App() {
   const addTermsToBlock = useStore((s) => s.addTermsToBlock);
   const addExistsToBlock = useStore((s) => s.addExistsToBlock);
   const addWildcardToBlock = useStore((s) => s.addWildcardToBlock);
+  const addNestedBlockTopLevel = useStore((s) => s.addNestedBlockTopLevel);
   const setPendingEditId = useStore((s) => s.setPendingEditId);
   const moveItemToBlock = useStore((s) => s.moveItemToBlock);
   const reorderItemInBlock = useStore((s) => s.reorderItemInBlock);
@@ -267,6 +269,7 @@ export default function App() {
 
     const activeData = active.data.current as
       | { kind: 'palette-block'; mode: BoolMode }
+      | { kind: 'palette-block-nested' }
       | PaletteLeafDrag
       | { kind: 'block'; blockId: string; mode: BoolMode }
       | { kind: 'template'; templateId: string }
@@ -279,6 +282,14 @@ export default function App() {
       | { kind: 'item'; instanceId: string; sectionMode: BoolMode }
       | undefined;
     if (!activeData || !overData) return;
+
+    // Palette nested block → only meaningful at top level for now.
+    if (activeData.kind === 'palette-block-nested') {
+      if (overData.kind === 'builder-canvas') {
+        addNestedBlockTopLevel();
+      }
+      return;
+    }
 
     // 1) Palette mode-block → builder.
     //    - Onto canvas: append as a new top-level block.
@@ -583,6 +594,7 @@ export default function App() {
           <ModeBlockPalette
             activeDragMode={activeDrag?.kind === 'palette-block' ? activeDrag.mode : null}
             activeDragLeaf={activeDrag?.kind === 'palette-leaf' ? activeDrag.leafId : null}
+            activeDragNestedBlock={activeDrag?.kind === 'palette-block-nested'}
           />
           <div className="flex min-w-0 flex-1 flex-col">
             <QueryOutput />
