@@ -77,16 +77,16 @@ export function TimestampRangeForm({
   return (
     <div className={`rounded-md border-2 border-dashed ${meta.softBorder} ${meta.softBg} p-3`}>
       <div className="mb-2 flex items-center gap-2">
-        <span className={`inline-flex items-center gap-1 rounded border bg-white px-1.5 py-0.5 font-mono text-[10px] ${meta.accentText} ${meta.softBorder}`}>
+        <span className={`inline-flex items-center gap-1 rounded border bg-white px-1.5 py-0.5 font-mono text-[10px] dark:bg-neutral-900 ${meta.accentText} ${meta.softBorder}`}>
           ⏱ timestamp range in {meta.label}
         </span>
       </div>
 
-      <label className="block text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+      <label className="block text-[11px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
         Field
       </label>
       <input
-        className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-1.5 font-mono text-sm focus:border-neutral-500 focus:outline-none"
+        className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-1.5 font-mono text-sm focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:border-neutral-500"
         value={field}
         onChange={(e) => setField(e.target.value)}
         placeholder="createdAt"
@@ -112,8 +112,8 @@ export function TimestampRangeForm({
         />
       </div>
 
-      <div className="mt-2 rounded-md border border-neutral-200 bg-white/60 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-neutral-600">
-        <div className="text-[9px] font-semibold uppercase tracking-wide text-neutral-400">
+      <div className="mt-2 rounded-md border border-neutral-200 bg-white/60 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-300">
+        <div className="text-[9px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
           will save as
         </div>
         <div className="break-all">
@@ -128,14 +128,14 @@ export function TimestampRangeForm({
       <div className="mt-2 flex items-center justify-end gap-2">
         <button
           onClick={onCancel}
-          className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+          className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
         >
           Cancel
         </button>
         <button
           onClick={submit}
           disabled={!canSave}
-          className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-300"
+          className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-300 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200 dark:disabled:bg-neutral-700 dark:disabled:text-neutral-500"
         >
           Save range
         </button>
@@ -159,8 +159,8 @@ function PresetChip({
       onClick={onClick}
       className={`rounded-full border px-2 py-0.5 font-mono text-[10px] transition ${
         active
-          ? 'border-amber-400 bg-amber-100 text-amber-800'
-          : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:text-neutral-700'
+          ? 'border-amber-400 bg-amber-100 text-amber-800 dark:border-amber-600 dark:bg-amber-900 dark:text-amber-200'
+          : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-600 dark:hover:text-neutral-200'
       }`}
     >
       {label}
@@ -186,15 +186,15 @@ function BoundField({
   const trimmed = value.trim();
   return (
     <div>
-      <label className="block text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+      <label className="block text-[11px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
         {label}
       </label>
       <input
         className={[
-          'mt-1 w-full rounded-md border bg-white px-3 py-1.5 font-mono text-sm focus:outline-none',
+          'mt-1 w-full rounded-md border bg-white px-3 py-1.5 font-mono text-sm focus:outline-none dark:bg-neutral-800 dark:text-neutral-100',
           info.ok
-            ? 'border-neutral-300 focus:border-neutral-500'
-            : 'border-rose-400 focus:border-rose-500',
+            ? 'border-neutral-300 focus:border-neutral-500 dark:border-neutral-700'
+            : 'border-rose-400 focus:border-rose-500 dark:border-rose-700',
         ].join(' ')}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -203,7 +203,7 @@ function BoundField({
       />
       <div
         className={`mt-0.5 truncate font-mono text-[10px] ${
-          info.ok ? 'text-neutral-500' : 'text-rose-600'
+          info.ok ? 'text-neutral-500 dark:text-neutral-400' : 'text-rose-600 dark:text-rose-400'
         }`}
         title={info.text}
       >

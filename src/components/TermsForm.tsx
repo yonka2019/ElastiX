@@ -41,24 +41,24 @@ export function TermsForm({
     <div className={`rounded-md border-2 border-dashed ${meta.softBorder} ${meta.softBg} p-3`}>
       <div className="mb-2 flex items-center gap-2">
         <span
-          className={`inline-flex items-center gap-1 rounded border bg-white px-1.5 py-0.5 font-mono text-[10px] ${meta.accentText} ${meta.softBorder}`}
+          className={`inline-flex items-center gap-1 rounded border bg-white px-1.5 py-0.5 font-mono text-[10px] dark:bg-neutral-900 ${meta.accentText} ${meta.softBorder}`}
         >
           ▦ terms (multi value) in {meta.label}
         </span>
       </div>
 
-      <label className="block text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+      <label className="block text-[11px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
         Field
       </label>
       <input
-        className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-1.5 font-mono text-sm focus:border-neutral-500 focus:outline-none"
+        className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-1.5 font-mono text-sm focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:border-neutral-500"
         value={field}
         onChange={(e) => setField(e.target.value)}
         placeholder="field.name"
         spellCheck={false}
       />
 
-      <label className="mt-3 block text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+      <label className="mt-3 block text-[11px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
         Values ({values.length})
       </label>
 
@@ -67,12 +67,12 @@ export function TermsForm({
           {values.map((v) => (
             <span
               key={v}
-              className="inline-flex items-center gap-1 rounded-full border border-fuchsia-300 bg-fuchsia-50 px-2 py-0.5 font-mono text-[11px] text-fuchsia-800"
+              className="inline-flex items-center gap-1 rounded-full border border-fuchsia-300 bg-fuchsia-50 px-2 py-0.5 font-mono text-[11px] text-fuchsia-800 dark:border-fuchsia-700 dark:bg-fuchsia-950 dark:text-fuchsia-300"
             >
               {v}
               <button
                 onClick={() => removeValue(v)}
-                className="rounded-full text-fuchsia-600 hover:bg-fuchsia-200 hover:text-fuchsia-900"
+                className="rounded-full text-fuchsia-600 hover:bg-fuchsia-200 hover:text-fuchsia-900 dark:text-fuchsia-400 dark:hover:bg-fuchsia-900 dark:hover:text-fuchsia-100"
                 title={`Remove ${v}`}
                 aria-label={`Remove ${v}`}
               >
@@ -85,7 +85,7 @@ export function TermsForm({
 
       <div className="mt-2 flex gap-2">
         <input
-          className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-1.5 font-mono text-sm focus:border-neutral-500 focus:outline-none"
+          className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-1.5 font-mono text-sm focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:border-neutral-500"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -105,14 +105,14 @@ export function TermsForm({
             setDraft('');
           }}
           disabled={!draft.trim()}
-          className="rounded-md border border-fuchsia-300 bg-fuchsia-50 px-2 text-xs font-medium text-fuchsia-700 hover:bg-fuchsia-100 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-md border border-fuchsia-300 bg-fuchsia-50 px-2 text-xs font-medium text-fuchsia-700 hover:bg-fuchsia-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-fuchsia-700 dark:bg-fuchsia-950 dark:text-fuchsia-300 dark:hover:bg-fuchsia-900"
         >
           Add
         </button>
       </div>
 
-      <div className="mt-2 rounded-md border border-neutral-200 bg-white/60 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-neutral-600">
-        <div className="text-[9px] font-semibold uppercase tracking-wide text-neutral-400">
+      <div className="mt-2 rounded-md border border-neutral-200 bg-white/60 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-300">
+        <div className="text-[9px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
           will save as
         </div>
         <div className="break-all">{`{ "terms": { "${field.trim() || '…'}": [${
@@ -123,7 +123,7 @@ export function TermsForm({
       <div className="mt-2 flex items-center justify-end gap-2">
         <button
           onClick={onCancel}
-          className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+          className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
         >
           Cancel
         </button>
@@ -132,7 +132,7 @@ export function TermsForm({
             canSave && onSubmit({ field: field.trim(), values: values.slice() })
           }
           disabled={!canSave}
-          className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-300"
+          className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-300 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200 dark:disabled:bg-neutral-700 dark:disabled:text-neutral-500"
         >
           Save terms
         </button>
