@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import Editor from '@monaco-editor/react';
 import { useStore, buildQuery, modeOccurrences, totalItemCount } from '../store';
 import { MODE_META, MODE_ORDER } from '../types';
+import { JsonTree } from './JsonTree';
 
 type CountState =
   | { kind: 'idle' }
@@ -164,22 +164,8 @@ export function QueryOutput() {
       </div>
 
       {expanded && (
-        <div className="flex-1 min-h-0">
-          <Editor
-            value={json}
-            language="json"
-            theme="vs"
-            options={{
-              readOnly: true,
-              minimap: { enabled: false },
-              fontSize: 12,
-              fontFamily: '"JetBrains Mono", ui-monospace, monospace',
-              lineNumbers: 'on',
-              scrollBeyondLastLine: false,
-              wordWrap: 'on',
-              renderLineHighlight: 'none',
-            }}
-          />
+        <div className="flex-1 min-h-0 overflow-auto bg-white px-4 py-3 dark:bg-neutral-950">
+          <JsonTree value={built} />
         </div>
       )}
     </section>

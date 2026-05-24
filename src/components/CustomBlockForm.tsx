@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Editor from '@monaco-editor/react';
 import type { BoolMode } from '../types';
 import { MODE_META } from '../types';
 
@@ -97,25 +96,13 @@ export function CustomBlockForm({
         onChange={(e) => setName(e.target.value)}
       />
 
-      <div className="mt-2 overflow-hidden rounded-md border border-neutral-300 bg-white">
-        <div style={{ height: 140 }}>
-          <Editor
-            value={queryText}
-            language="json"
-            theme="vs"
-            onChange={(v) => setQueryText(v ?? '')}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 12,
-              fontFamily: '"JetBrains Mono", ui-monospace, monospace',
-              lineNumbers: 'off',
-              scrollBeyondLastLine: false,
-              padding: { top: 6, bottom: 6 },
-              renderLineHighlight: 'none',
-            }}
-          />
-        </div>
-      </div>
+      <textarea
+        value={queryText}
+        onChange={(e) => setQueryText(e.target.value)}
+        spellCheck={false}
+        rows={7}
+        className="mt-2 w-full resize-y rounded-md border border-neutral-300 bg-white p-2 font-mono text-[12px] leading-relaxed text-neutral-900 focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+      />
 
       {error && (
         <div className="mt-2 rounded-md border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs text-rose-700">
