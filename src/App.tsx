@@ -18,8 +18,10 @@ import { ElastixLogo, ModeIcon } from './components/icons';
 import { TemplateLibrary } from './components/TemplateLibrary';
 import { Builder } from './components/Builder';
 import { QueryOutput } from './components/QueryOutput';
-import type { BoolMode } from './types';
+import type { BoolMode, ModeBlock } from './types';
 import { MODE_META } from './types';
+import { PreviewProvider } from './utils/preview';
+import { useTheme } from './utils/theme';
 
 type PaletteLeafDrag =
   | {
@@ -518,6 +520,7 @@ export default function App() {
   })();
 
   return (
+    <PreviewProvider>
     <DndContext
       sensors={sensors}
       collisionDetection={collisionDetection}
@@ -558,6 +561,7 @@ export default function App() {
         {overlayContent}
       </DragOverlay>
     </DndContext>
+    </PreviewProvider>
   );
 }
 
