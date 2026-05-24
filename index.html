@@ -20,6 +20,15 @@
       fetching /templates.json from Vite's public/ folder.
     -->
     <script id="elastix-templates" type="application/json">${ELASTIX_TEMPLATES_JSON}</script>
+    <script>
+      (function () {
+        try {
+          var v = localStorage.getItem('elastix-theme');
+          var dark = v ? v === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
