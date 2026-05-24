@@ -2109,7 +2109,7 @@ git commit -m "feat(preview): eye button on block headers"
 
 ---
 
-## Phase 9 — Polish (Kibana icon, footer)
+## Phase 9 — Polish (Kibana icon, footer, drag bugfix)
 
 ### Task 9.1: Refresh "Open in Kibana" icon
 
@@ -2182,6 +2182,98 @@ This sits below the flex-1 row holding palette/builder/library, so the layout be
 ```powershell
 git add src/App.tsx
 git commit -m "feat(footer): move by-yonka credit to a bottom footer"
+```
+
+### Task 9.3: Allow extracting a nested block to top-level
+
+**Problem:** Dragging a nested `bool` item out and dropping it on the builder canvas does nothing. The "Item drag" branch in `handleDragEnd` has no case for `overData.kind === 'builder-canvas'`. The user has no way to promote a nested block back to top-level except by deleting and rebuilding it.
+
+**Fix:** Add a store action that promotes a nested bool item to a top-level block (preserving its inner items, name, mode), and wire it into the drag handler.
+
+**Files:**
+- Modify: `src/store.ts`
+- Modify: `src/App.tsx`
+
+- [ ] **Step 1: Add `promoteItemToTopLevel` action to the store**
+
+In `StoreState` type definition, near `moveItemToBlock`:
+```ts
+  promoteItemToTopLevel: (instanceId: string, atIndex?: number) => void;
+```
+
+In the store factory body, near `moveItemToBlock`, add:
+```ts
+      promoteItemToTopLevel: (instanceId, atIndex) => {
+        set((s) => {
+          const loc = locateItem(s.blocks, instanceId);
+          if (!loc) return s;
+          const parent = findBlockById(s.blocks, loc.parentBlockId);
+          if (!parent) return s;
+          const item = parent.items[loc.index];
+          if (!item || item.source.kind !== 'bool') return s;
+
+          // Remove the item from its parent (anywhere in the tree).
+          const without = updateBlockById(s.blocks, loc.parentBlockId, (b) => ({
+            ...b,
+            items: b.items.filter((x) => x.instanceId !== instanceId),
+          }));
+
+          // Append (or insert at atIndex) the inner block at top level.
+          const inner = item.source.block;
+          const blocks = insertAt(without, inner, atIndex);
+          return { blocks };
+        });
+      },
+```
+
+- [ ] **Step 2: Wire the drag handler in `App.tsx`**
+
+In `App.tsx`, add the store reference alongside the other action hooks:
+```tsx
+  const promoteItemToTopLevel = useStore((s) => s.promoteItemToTopLevel);
+```
+
+In `handleDragEnd`, the "// 4) Item drag" branch, currently handles `overData.kind === 'item'` and `overData.kind === 'block-zone' | 'block'`. Add a new case **before** the `'item'` case for `'builder-canvas'`:
+
+```tsx
+    if (activeData.kind === 'item') {
+      // Item dropped on the empty builder canvas — only meaningful for bool
+      // items, which become a new top-level block. Leaf items have no
+      // meaning at the top level so we ignore them.
+      if (overData.kind === 'builder-canvas') {
+        const item = getItem(blocks, activeData.instanceId);
+        if (item?.source.kind === 'bool') {
+          promoteItemToTopLevel(activeData.instanceId);
+        }
+        return;
+      }
+      if (overData.kind === 'item') {
+        /* unchanged */
+      }
+      if (overData.kind === 'block-zone' || overData.kind === 'block') {
+        /* unchanged */
+      }
+    }
+```
+
+(`getItem` is already imported from `'./store'` at the top of `App.tsx`.)
+
+- [ ] **Step 3: Verify build**
+
+Run: `npm run build`
+Expected: passes.
+
+- [ ] **Step 4: Smoke test**
+
+`npm run dev`. Create a top-level `must` block. Drop a `should` block inside it (nested). Now grab the nested `should` block by its header drag handle and drop it onto the empty builder canvas (outside any block). It should become a new top-level block, preserving its inner items.
+
+Reverse case: drop a top-level block into another block → still works (existing `block` → `block` drag).
+
+- [ ] **Step 5: Commit**
+
+```powershell
+git add src/store.ts src/App.tsx
+git commit -m "fix(dnd): allow extracting a nested block to top-level"
 ```
 
 ---
