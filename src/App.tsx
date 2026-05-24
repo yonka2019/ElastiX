@@ -554,7 +554,7 @@ export default function App() {
         lastOverIdRef.current = null;
       }}
     >
-      <div className="flex h-screen flex-col bg-neutral-50 dark:bg-neutral-950">
+      <div className="flex h-screen flex-col overflow-hidden bg-neutral-50 dark:bg-neutral-950">
         <Header />
         <div className="flex min-h-0 flex-1">
           <ModeBlockPalette
@@ -580,7 +580,7 @@ export default function App() {
         </div>
         <div
           aria-hidden
-          className="pointer-events-none fixed bottom-2 right-3 z-40 font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-500 dark:text-neutral-400"
+          className="pointer-events-none fixed bottom-2 right-3 z-40 font-mono text-[11px] tracking-wider text-neutral-500 dark:text-neutral-400"
         >
           by yonka
         </div>
