@@ -94,6 +94,7 @@ export default function App() {
   const moveItemToBlock = useStore((s) => s.moveItemToBlock);
   const reorderItemInBlock = useStore((s) => s.reorderItemInBlock);
   const promoteItemToTopLevel = useStore((s) => s.promoteItemToTopLevel);
+  const nestTopLevelBlock = useStore((s) => s.nestTopLevelBlock);
   const loadTemplates = useStore((s) => s.loadTemplates);
   const loadConfig = useStore((s) => s.loadConfig);
 
@@ -310,12 +311,33 @@ export default function App() {
       return;
     }
 
-    // 2) Existing block → reorder via block header drag handle.
+    // 2) Existing block → reorder at top level (drop on another block's
+    //    header) or nest into another block (drop on its body / on an
+    //    item inside it).
     if (activeData.kind === 'block') {
       if (overData.kind === 'block') {
         const from = blocks.findIndex((b) => b.id === activeData.blockId);
         const to = blocks.findIndex((b) => b.id === overData.blockId);
         if (from >= 0 && to >= 0 && from !== to) reorderBlocks(from, to);
+        return;
+      }
+      if (overData.kind === 'block-zone') {
+        if (activeData.blockId !== overData.blockId) {
+          nestTopLevelBlock(activeData.blockId, overData.blockId);
+        }
+        return;
+      }
+      if (overData.kind === 'item') {
+        const item = getItem(blocks, overData.instanceId);
+        if (item?.source.kind === 'bool' && item.source.block.id !== activeData.blockId) {
+          nestTopLevelBlock(activeData.blockId, item.source.block.id);
+          return;
+        }
+        const containing = blockContaining(blocks, overData.instanceId);
+        if (containing && containing.id !== activeData.blockId) {
+          const loc = locateItemPublic(blocks, overData.instanceId);
+          nestTopLevelBlock(activeData.blockId, containing.id, loc?.index);
+        }
       }
       return;
     }
@@ -672,10 +694,6 @@ function Header() {
         <div className="flex items-baseline gap-1.5">
           <span className="text-base font-semibold text-neutral-900 dark:text-neutral-100">ElastiX</span>
         </div>
-        <div className="hidden text-xs text-neutral-500 sm:block dark:text-neutral-400">
-          Drag a block from the left, drop templates from the right under each block, or write
-          custom clauses inside.
-        </div>
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={toggle}
@@ -740,13 +758,13 @@ function Header() {
                 : 'Set KIBANA_URL in .env to enable'
             }
           >
-            <svg viewBox="0 0 32 32" className="h-5 w-5 shrink-0" aria-label="Elastic" role="img">
-              <polygon points="11,2 23,2 19,10 7,10" fill="#FEC514" />
-              <polygon points="24,2 30,2 26,10 20,10" fill="#00BFB3" />
-              <polygon points="9,11 23,11 19,19 5,19" fill="#1BA9F5" />
-              <polygon points="24,11 30,11 26,19 20,19" fill="#F04E98" />
-              <polygon points="7,20 19,20 15,28 3,28" fill="#0A5BB0" />
-              <polygon points="20,20 26,20 22,28 16,28" fill="#FA744E" />
+            <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" aria-label="Elastic" role="img">
+              <rect x="3" y="3.5" width="9" height="4" rx="1.5" fill="#FED10A" />
+              <rect x="13" y="3.5" width="8" height="4" rx="1.5" fill="#00BFB3" />
+              <rect x="3" y="10" width="13" height="4" rx="1.5" fill="#1BA9F5" />
+              <rect x="17" y="10" width="4" height="4" rx="1.5" fill="#F04E98" />
+              <rect x="3" y="16.5" width="9" height="4" rx="1.5" fill="#0A5BB0" />
+              <rect x="13" y="16.5" width="8" height="4" rx="1.5" fill="#FA744E" />
             </svg>
             Open in Kibana
           </button>

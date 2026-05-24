@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { BoolMode } from '../types';
 import { MODE_META } from '../types';
+import { JsonTree } from './JsonTree';
 
 type Props = {
   variant: 'create' | 'edit';
@@ -104,6 +105,8 @@ export function CustomBlockForm({
         className="mt-2 w-full resize-y rounded-md border border-neutral-300 bg-white p-2 font-mono text-[12px] leading-relaxed text-neutral-900 focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
       />
 
+      <LivePreview text={queryText} />
+
       {error && (
         <div className="mt-2 rounded-md border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
           {error}
@@ -134,6 +137,29 @@ export function CustomBlockForm({
           {variant === 'edit' ? 'Save changes' : `+ Add to ${meta.label}`}
         </button>
       </div>
+    </div>
+  );
+}
+
+function LivePreview({ text }: { text: string }) {
+  const parsed = useMemo(() => {
+    try {
+      const v = JSON.parse(text);
+      if (typeof v === 'object' && v !== null && !Array.isArray(v)) return { ok: true, value: v };
+      return { ok: false, value: null };
+    } catch {
+      return { ok: false, value: null };
+    }
+  }, [text]);
+
+  if (!parsed.ok) return null;
+
+  return (
+    <div className="mt-2 max-h-44 overflow-auto rounded-md border border-neutral-200 bg-neutral-50 p-2 dark:border-neutral-700 dark:bg-neutral-950">
+      <div className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+        preview
+      </div>
+      <JsonTree value={parsed.value} />
     </div>
   );
 }

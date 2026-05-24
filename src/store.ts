@@ -113,6 +113,7 @@ type StoreState = {
   moveItemToBlock: (instanceId: string, toBlockId: string, atIndex?: number) => void;
   reorderItemInBlock: (blockId: string, fromIndex: number, toIndex: number) => void;
   promoteItemToTopLevel: (instanceId: string, atIndex?: number) => void;
+  nestTopLevelBlock: (sourceBlockId: string, targetBlockId: string, atIndex?: number) => void;
 
   setPendingEditId: (id: string | null) => void;
 
@@ -655,6 +656,33 @@ export const useStore = create<StoreState>()(
             items: insertAt(b.items, item, atIndex),
           }));
           return { blocks };
+        });
+      },
+
+      nestTopLevelBlock: (sourceBlockId, targetBlockId, atIndex) => {
+        set((s) => {
+          if (sourceBlockId === targetBlockId) return s;
+          const srcIdx = s.blocks.findIndex((b) => b.id === sourceBlockId);
+          if (srcIdx < 0) return s;
+          const sourceBlock = s.blocks[srcIdx];
+
+          // Cycle guard: target must not live inside the source subtree.
+          if (findBlockById([sourceBlock], targetBlockId)) return s;
+
+          const withoutSource = [...s.blocks];
+          withoutSource.splice(srcIdx, 1);
+
+          const newItem: BuilderItem = {
+            instanceId: uuidv4(),
+            source: { kind: 'bool', block: sourceBlock },
+          };
+
+          return {
+            blocks: updateBlockById(withoutSource, targetBlockId, (b) => ({
+              ...b,
+              items: insertAt(b.items, newItem, atIndex),
+            })),
+          };
         });
       },
 
