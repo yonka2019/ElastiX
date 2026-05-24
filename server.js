@@ -13,6 +13,9 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { makeElasticHandlers } from './server/elasticApi.js';
+
+const { handleConfig, handleCount } = makeElasticHandlers(process.env);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = path.join(__dirname, 'web');
@@ -75,14 +78,24 @@ function sendIndex(res) {
 }
 
 const server = http.createServer((req, res) => {
+  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const pathname = decodeURIComponent(url.pathname);
+
+  // API routes — handled before the static-file logic so they don't fall
+  // through to the SPA index.html fallback. handleConfig accepts any
+  // method (idempotent GET); handleCount enforces POST.
+  if (pathname === '/api/config') {
+    return handleConfig(req, res);
+  }
+  if (pathname === '/api/count') {
+    return handleCount(req, res);
+  }
+
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { allow: 'GET, HEAD' });
     res.end();
     return;
   }
-
-  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
-  const pathname = decodeURIComponent(url.pathname);
 
   if (pathname === '/' || pathname === '/index.html') {
     sendIndex(res);
