@@ -62,20 +62,20 @@ export function QueryOutput() {
   return (
     <section
       className={[
-        'flex shrink-0 flex-col border-b border-neutral-200 bg-white transition-[height] duration-200',
+        'flex shrink-0 flex-col border-b border-neutral-200 bg-white transition-[height] duration-200 dark:border-neutral-800 dark:bg-neutral-900',
         expanded ? 'h-72' : 'h-10',
       ].join(' ')}
     >
       <div
         onClick={() => setExpanded((v) => !v)}
-        className="flex cursor-pointer items-center gap-3 border-b border-blue-200 bg-gradient-to-r from-sky-50 via-blue-50 to-indigo-50 px-5 py-2 hover:from-sky-100 hover:via-blue-100 hover:to-indigo-100"
+        className="flex cursor-pointer items-center gap-3 border-b border-blue-200 bg-gradient-to-r from-sky-50 via-blue-50 to-indigo-50 px-5 py-2 hover:from-sky-100 hover:via-blue-100 hover:to-indigo-100 dark:border-blue-900 dark:from-sky-950 dark:via-blue-950 dark:to-indigo-950 dark:hover:from-sky-900 dark:hover:via-blue-900 dark:hover:to-indigo-900"
       >
         <button
           onClick={(e) => {
             e.stopPropagation();
             setExpanded((v) => !v);
           }}
-          className="flex items-center gap-1 rounded p-0.5 text-blue-700 transition-colors hover:bg-blue-100"
+          className="flex items-center gap-1 rounded p-0.5 text-blue-700 transition-colors hover:bg-blue-100 dark:text-blue-300 dark:hover:bg-blue-900"
           title={expanded ? 'Minimize generated query' : 'Expand generated query'}
           aria-label={expanded ? 'Minimize' : 'Expand'}
         >
@@ -91,14 +91,14 @@ export function QueryOutput() {
             <path d="M6 15l6-6 6 6" />
           </svg>
         </button>
-        <span className="text-sm font-semibold text-blue-900">Generated Query</span>
+        <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">Generated Query</span>
         {!expanded && (
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-blue-600/80">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-blue-600/80 dark:text-blue-300/80">
             click to expand ▾
           </span>
         )}
         {total === 0 ? (
-          <span className="font-mono text-[11px] text-neutral-500">empty → match_all</span>
+          <span className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400">empty → match_all</span>
         ) : (
           <span className="flex items-center gap-1.5">
             {MODE_ORDER.filter((m) => counts[m] > 0).map((m) => {
@@ -119,7 +119,7 @@ export function QueryOutput() {
         <div className="ml-auto flex items-center gap-2">
           {count.kind === 'ok' && (
             <span
-              className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-emerald-700"
+              className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
               title={`Matched on index pattern ${config.indexPattern}`}
             >
               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden>
@@ -130,7 +130,7 @@ export function QueryOutput() {
           )}
           {count.kind === 'err' && (
             <span
-              className="max-w-[260px] truncate rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 font-mono text-[11px] text-rose-700"
+              className="max-w-[260px] truncate rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 font-mono text-[11px] text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300"
               title={count.message}
             >
               count failed: {count.message}
@@ -142,7 +142,7 @@ export function QueryOutput() {
               void runCount();
             }}
             disabled={!config.ready || count.kind === 'loading'}
-            className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-50 disabled:text-neutral-400"
+            className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-50 disabled:text-neutral-400 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 dark:hover:border-emerald-700 dark:hover:bg-emerald-900 dark:disabled:border-neutral-700 dark:disabled:bg-neutral-800 dark:disabled:text-neutral-500"
             title={
               config.ready
                 ? `Count matching docs on ${config.indexPattern}`
@@ -156,7 +156,7 @@ export function QueryOutput() {
               e.stopPropagation();
               void copy();
             }}
-            className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100"
+            className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300 dark:hover:border-blue-700 dark:hover:bg-blue-900"
           >
             {copied ? 'Copied ✓' : 'Copy JSON'}
           </button>

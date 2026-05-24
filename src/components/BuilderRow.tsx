@@ -223,7 +223,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
       <div
         ref={setNodeRef}
         style={style}
-        className="flex items-center gap-3 rounded-md border border-dashed border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+        className="flex items-center gap-3 rounded-md border border-dashed border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300"
       >
         <span className="font-mono text-xs">{String(index + 1).padStart(2, '0')}</span>
         <span>{label}</span>
@@ -250,27 +250,27 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
     <div
       ref={setNodeRef}
       style={style}
-      className="drop-in group relative flex items-center gap-3 overflow-hidden rounded-md border border-neutral-200 bg-white pl-3 pr-3 py-2.5 shadow-sm transition-all hover:border-neutral-300 hover:shadow"
+      className="drop-in group relative flex items-center gap-3 overflow-hidden rounded-md border border-neutral-200 bg-white pl-3 pr-3 py-2.5 shadow-sm transition-all hover:border-neutral-300 hover:shadow dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
     >
       <span className={`absolute left-0 top-0 h-full w-1 ${meta.bar}`} aria-hidden />
 
       <span
         {...attributes}
         {...listeners}
-        className="cursor-grab select-none pl-1 text-neutral-400 hover:text-neutral-700 active:cursor-grabbing"
+        className="cursor-grab select-none pl-1 text-neutral-400 hover:text-neutral-700 active:cursor-grabbing dark:text-neutral-500 dark:hover:text-neutral-200"
         title="Drag to reorder or move between sections"
       >
         ⋮⋮
       </span>
 
-      <span className="w-5 font-mono text-xs text-neutral-400">{String(index + 1).padStart(2, '0')}</span>
+      <span className="w-5 font-mono text-xs text-neutral-400 dark:text-neutral-500">{String(index + 1).padStart(2, '0')}</span>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-semibold text-neutral-900">{label}</span>
+          <span className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">{label}</span>
           {isTemplate && (
             <span
-              className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 font-mono text-[10px] text-blue-700"
+              className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 font-mono text-[10px] text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300"
               title="Reusable template from the library"
             >
               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -284,7 +284,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
           )}
           {isCustom && (
             <span
-              className="inline-flex items-center gap-1 rounded border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 font-mono text-[10px] text-indigo-700"
+              className="inline-flex items-center gap-1 rounded border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 font-mono text-[10px] text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-300"
               title="Inline custom query"
             >
               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -296,7 +296,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
           )}
           {isTimestamp && (
             <span
-              className="inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 font-mono text-[10px] text-amber-700"
+              className="inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 font-mono text-[10px] text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
               title="Configurable timestamp range"
             >
               <span>⏱</span>
@@ -305,7 +305,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
           )}
           {isTerm && (
             <span
-              className="inline-flex items-center gap-1 rounded border border-purple-200 bg-purple-50 px-1.5 py-0.5 font-mono text-[10px] text-purple-700"
+              className="inline-flex items-center gap-1 rounded border border-purple-200 bg-purple-50 px-1.5 py-0.5 font-mono text-[10px] text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-300"
               title="Single-value term query"
             >
               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -318,7 +318,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
           )}
           {isMatch && (
             <span
-              className="inline-flex items-center gap-1 rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 font-mono text-[10px] text-rose-700"
+              className="inline-flex items-center gap-1 rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 font-mono text-[10px] text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300"
               title="Full-text match query"
             >
               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -330,7 +330,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
           )}
           {isTerms && (
             <span
-              className="inline-flex items-center gap-1 rounded border border-fuchsia-200 bg-fuchsia-50 px-1.5 py-0.5 font-mono text-[10px] text-fuchsia-700"
+              className="inline-flex items-center gap-1 rounded border border-fuchsia-200 bg-fuchsia-50 px-1.5 py-0.5 font-mono text-[10px] text-fuchsia-700 dark:border-fuchsia-800 dark:bg-fuchsia-950 dark:text-fuchsia-300"
               title="Multi-value terms query"
             >
               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -345,7 +345,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
           )}
           {isExists && (
             <span
-              className="inline-flex items-center gap-1 rounded border border-teal-200 bg-teal-50 px-1.5 py-0.5 font-mono text-[10px] text-teal-700"
+              className="inline-flex items-center gap-1 rounded border border-teal-200 bg-teal-50 px-1.5 py-0.5 font-mono text-[10px] text-teal-700 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-300"
               title="Exists check"
             >
               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -357,11 +357,11 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
           )}
         </div>
         {description && (
-          <div className="truncate text-xs text-neutral-500">{description}</div>
+          <div className="truncate text-xs text-neutral-500 dark:text-neutral-400">{description}</div>
         )}
       </div>
 
-      <div className="hidden truncate font-mono text-[11px] text-neutral-400 lg:block lg:max-w-[240px]">
+      <div className="hidden truncate font-mono text-[11px] text-neutral-400 lg:block lg:max-w-[240px] dark:text-neutral-500">
         {queryPreview}
       </div>
 
@@ -369,7 +369,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
         {editable && (
           <button
             onClick={() => setEditing(true)}
-            className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+            className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
             title={editLabel}
           >
             ✎
@@ -377,7 +377,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
         )}
         <button
           onClick={onRemove}
-          className="rounded p-1 text-neutral-400 hover:bg-rose-50 hover:text-rose-600"
+          className="rounded p-1 text-neutral-400 hover:bg-rose-50 hover:text-rose-600 dark:text-neutral-500 dark:hover:bg-rose-950 dark:hover:text-rose-400"
           title="Remove from builder"
         >
           ×

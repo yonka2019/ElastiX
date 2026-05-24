@@ -102,12 +102,12 @@ function BlockCardImpl({
       ref={setNodeRef}
       style={style}
       className={[
-        'relative overflow-hidden rounded-xl bg-white shadow-md transition-colors',
+        'relative overflow-hidden rounded-xl bg-white shadow-md transition-colors dark:bg-neutral-900',
         meta.blockShadow,
         'border-2',
         targetedFromHeader
-          ? 'border-blue-500 ring-2 ring-blue-200'
-          : 'border-neutral-200',
+          ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800'
+          : 'border-neutral-200 dark:border-neutral-800',
       ].join(' ')}
     >
       {targetedFromHeader && (
@@ -204,12 +204,12 @@ function BlockCardImpl({
           {empty ? (
             <div
               className={[
-                'flex items-center justify-center rounded-md border-2 border-dashed bg-white/60 px-3 py-7 text-center text-xs transition-all',
+                'flex items-center justify-center rounded-md border-2 border-dashed bg-white/60 px-3 py-7 text-center text-xs transition-all dark:bg-neutral-900/60',
                 isOver
                   ? `${meta.softBorder} ${meta.accentText} font-semibold`
                   : showsHint
                   ? `${meta.softBorder} ${meta.accentText}`
-                  : 'border-neutral-200 text-neutral-400',
+                  : 'border-neutral-200 text-neutral-400 dark:border-neutral-700 dark:text-neutral-500',
               ].join(' ')}
             >
               {isOver
@@ -257,7 +257,7 @@ function BlockCardImpl({
               {isDragIntoBlockActive && (
                 <div
                   className={[
-                    'mt-2 rounded-md border border-dashed bg-white/60 px-3 py-1.5 text-center text-[11px]',
+                    'mt-2 rounded-md border border-dashed bg-white/60 px-3 py-1.5 text-center text-[11px] dark:bg-neutral-900/60',
                     meta.softBorder,
                     meta.accentText,
                     isOver ? 'invisible' : '',

@@ -165,8 +165,8 @@ export const LEAF_PALETTE: LeafSpec[] = [
     label: 'custom',
     caption: 'free JSON clause',
     glyph: CustomGlyph,
-    accent: 'text-indigo-700',
-    ring: 'hover:ring-indigo-200',
+    accent: 'text-indigo-700 dark:text-indigo-300',
+    ring: 'hover:ring-indigo-200 dark:hover:ring-indigo-800',
     payload: { name: 'custom', query: { term: { field: 'value' } } },
   },
   {
@@ -175,8 +175,8 @@ export const LEAF_PALETTE: LeafSpec[] = [
     label: 'timestamp',
     caption: 'createdAt range',
     glyph: '⏱',
-    accent: 'text-amber-700',
-    ring: 'hover:ring-amber-200',
+    accent: 'text-amber-700 dark:text-amber-300',
+    ring: 'hover:ring-amber-200 dark:hover:ring-amber-800',
     payload: { field: 'createdAt', gte: 'now-15m', lte: 'now' },
   },
   {
@@ -185,8 +185,8 @@ export const LEAF_PALETTE: LeafSpec[] = [
     label: 'term',
     caption: 'field = value',
     glyph: TermGlyph,
-    accent: 'text-purple-700',
-    ring: 'hover:ring-purple-200',
+    accent: 'text-purple-700 dark:text-purple-300',
+    ring: 'hover:ring-purple-200 dark:hover:ring-purple-800',
     payload: { field: '', value: '' },
   },
   {
@@ -195,8 +195,8 @@ export const LEAF_PALETTE: LeafSpec[] = [
     label: 'match',
     caption: 'full-text search',
     glyph: MatchGlyph,
-    accent: 'text-rose-700',
-    ring: 'hover:ring-rose-200',
+    accent: 'text-rose-700 dark:text-rose-300',
+    ring: 'hover:ring-rose-200 dark:hover:ring-rose-800',
     payload: { field: '', value: '' },
   },
   {
@@ -205,8 +205,8 @@ export const LEAF_PALETTE: LeafSpec[] = [
     label: 'terms',
     caption: 'field IN values',
     glyph: TermsGlyph,
-    accent: 'text-fuchsia-700',
-    ring: 'hover:ring-fuchsia-200',
+    accent: 'text-fuchsia-700 dark:text-fuchsia-300',
+    ring: 'hover:ring-fuchsia-200 dark:hover:ring-fuchsia-800',
     payload: { field: '', values: [] },
   },
   {
@@ -215,8 +215,8 @@ export const LEAF_PALETTE: LeafSpec[] = [
     label: 'exists',
     caption: 'field is present',
     glyph: ExistsGlyph,
-    accent: 'text-teal-700',
-    ring: 'hover:ring-teal-200',
+    accent: 'text-teal-700 dark:text-teal-300',
+    ring: 'hover:ring-teal-200 dark:hover:ring-teal-800',
     payload: { field: '' },
   },
 ];
@@ -237,7 +237,7 @@ function PaletteCard({ mode, isDragging }: { mode: BoolMode; isDragging: boolean
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={`group relative cursor-grab select-none overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow active:cursor-grabbing ${
+      className={`group relative cursor-grab select-none overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow active:cursor-grabbing dark:border-neutral-700 dark:bg-neutral-900 ${
         isDragging ? 'opacity-30' : ''
       }`}
       title={`Drag to add a ${meta.label} block`}
@@ -268,20 +268,20 @@ function LeafCard({ spec, isDragging }: { spec: LeafSpec; isDragging: boolean })
       {...attributes}
       {...listeners}
       className={[
-        'group relative flex cursor-grab select-none items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow active:cursor-grabbing ring-2 ring-transparent',
+        'group relative flex cursor-grab select-none items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow active:cursor-grabbing ring-2 ring-transparent dark:border-neutral-700 dark:bg-neutral-900',
         spec.ring,
         isDragging ? 'opacity-30' : '',
       ].join(' ')}
       title={`Drag to add a ${spec.label} clause into a block`}
     >
-      <span className={`flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 font-mono text-sm ${spec.accent}`}>
+      <span className={`flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 font-mono text-sm dark:border-neutral-700 dark:bg-neutral-800 ${spec.accent}`}>
         {spec.glyph}
       </span>
       <div className="flex min-w-0 flex-col leading-tight">
         <span className={`truncate font-mono text-[13px] font-bold tracking-wide ${spec.accent}`}>
           {spec.label}
         </span>
-        <span className="truncate text-[10px] text-neutral-500">{spec.caption}</span>
+        <span className="truncate text-[10px] text-neutral-500 dark:text-neutral-400">{spec.caption}</span>
       </div>
     </div>
   );
@@ -289,19 +289,19 @@ function LeafCard({ spec, isDragging }: { spec: LeafSpec; isDragging: boolean })
 
 export function ModeBlockPalette({ activeDragMode, activeDragLeaf }: Props) {
   return (
-    <aside className="flex h-full w-56 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50">
-      <div className="border-b border-neutral-200 bg-white px-3 py-3">
-        <div className="text-sm font-semibold text-neutral-900">Blocks</div>
-        <div className="text-[11px] text-neutral-500">Drag onto the builder</div>
+    <aside className="flex h-full w-56 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950">
+      <div className="border-b border-neutral-200 bg-white px-3 py-3 dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Blocks</div>
+        <div className="text-[11px] text-neutral-500 dark:text-neutral-400">Drag onto the builder</div>
       </div>
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-3">
         {MODE_ORDER.map((m) => (
           <PaletteCard key={m} mode={m} isDragging={activeDragMode === m} />
         ))}
 
-        <div className="mt-3 flex items-center gap-2 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
+        <div className="mt-3 flex items-center gap-2 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
           <span>Clauses</span>
-          <span className="h-px flex-1 bg-neutral-200" />
+          <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
         </div>
         {LEAF_PALETTE.map((spec) => (
           <LeafCard key={spec.id} spec={spec} isDragging={activeDragLeaf === spec.id} />
