@@ -453,7 +453,7 @@ export default function App() {
       const t = templates.find((x) => x.id === activeDrag.templateId);
       if (!t) return null;
       return (
-        <div className="max-w-[260px] truncate rounded-full border border-blue-200 bg-white px-3 py-1.5 text-sm font-semibold text-neutral-900 shadow-xl ring-2 ring-blue-200">
+        <div className="max-w-[260px] truncate rounded-full border border-blue-200 bg-white px-3 py-1.5 text-sm font-semibold text-neutral-900 shadow-xl ring-2 ring-blue-200 dark:border-blue-800 dark:bg-neutral-900 dark:text-neutral-100 dark:ring-blue-800">
           {t.name}
         </div>
       );
@@ -478,14 +478,14 @@ export default function App() {
         detail = activeDrag.payload.field || 'configure…';
       }
       return (
-        <div className="flex w-72 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-xl ring-2 ring-blue-200">
-          <span className={`flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 font-mono text-sm ${spec.accent}`}>
+        <div className="flex w-72 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-xl ring-2 ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:ring-blue-800">
+          <span className={`flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 font-mono text-sm dark:border-neutral-700 dark:bg-neutral-800 ${spec.accent}`}>
             {spec.glyph}
           </span>
           <span className={`font-mono text-[13px] font-bold tracking-wide ${spec.accent}`}>
             {spec.label}
           </span>
-          <span className="ml-auto truncate font-mono text-[10px] text-neutral-400">
+          <span className="ml-auto truncate font-mono text-[10px] text-neutral-400 dark:text-neutral-500">
             {detail}
           </span>
         </div>
@@ -494,7 +494,7 @@ export default function App() {
     if (activeDrag.kind === 'palette-block') {
       const meta = MODE_META[activeDrag.mode];
       return (
-        <div className="w-52 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl ring-2 ring-blue-200">
+        <div className="w-52 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl ring-2 ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:ring-blue-800">
           <div className={`${meta.headerSolid} flex items-center gap-2 px-3 py-2 text-white`}>
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur">
               <ModeIcon mode={activeDrag.mode} className="h-4 w-4 text-white" />
@@ -511,7 +511,7 @@ export default function App() {
       if (item.source.kind === 'bool') {
         const blockMeta = MODE_META[item.source.block.mode];
         return (
-          <div className="w-[420px] overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl ring-2 ring-blue-200">
+          <div className="w-[420px] overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl ring-2 ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:ring-blue-800">
             <div className={`${blockMeta.headerSolid} flex items-center gap-2 px-3 py-2 text-white`}>
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur">
                 <ModeIcon mode={item.source.block.mode} className="h-4 w-4 text-white" />
@@ -535,9 +535,9 @@ export default function App() {
         name = item.source.name;
       }
       return (
-        <div className="flex w-[420px] items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 py-2.5 shadow-xl ring-2 ring-blue-200">
+        <div className="flex w-[420px] items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 py-2.5 shadow-xl ring-2 ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:ring-blue-800">
           <span className={`h-2 w-2 rounded-full ${sectionMeta.dot}`} />
-          <span className="text-sm font-semibold text-neutral-900">{name}</span>
+          <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{name}</span>
           <span className={`ml-auto font-mono text-[10px] ${sectionMeta.accentText}`}>
             from {sectionMeta.label}
           </span>
@@ -549,7 +549,7 @@ export default function App() {
       if (!block) return null;
       const meta = MODE_META[block.mode];
       return (
-        <div className={`w-72 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl ring-2 ring-blue-200`}>
+        <div className={`w-72 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl ring-2 ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:ring-blue-800`}>
           <div className={`${meta.headerSolid} flex items-center gap-2 px-3 py-2 text-white`}>
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur">
               <ModeIcon mode={block.mode} className="h-4 w-4 text-white" />
