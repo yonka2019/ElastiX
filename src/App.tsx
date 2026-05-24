@@ -740,13 +740,13 @@ function Header() {
                 : 'Set KIBANA_URL in .env to enable'
             }
           >
-            <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" aria-label="Elastic" role="img">
-              <rect x="3" y="3.5" width="9" height="4" rx="1.5" fill="#FED10A" />
-              <rect x="13" y="3.5" width="8" height="4" rx="1.5" fill="#00BFB3" />
-              <rect x="3" y="10" width="13" height="4" rx="1.5" fill="#1BA9F5" />
-              <rect x="17" y="10" width="4" height="4" rx="1.5" fill="#F04E98" />
-              <rect x="3" y="16.5" width="9" height="4" rx="1.5" fill="#0A5BB0" />
-              <rect x="13" y="16.5" width="8" height="4" rx="1.5" fill="#FA744E" />
+            <svg viewBox="0 0 32 32" className="h-5 w-5 shrink-0" aria-label="Elastic" role="img">
+              <polygon points="11,2 23,2 19,10 7,10" fill="#FEC514" />
+              <polygon points="24,2 30,2 26,10 20,10" fill="#00BFB3" />
+              <polygon points="9,11 23,11 19,19 5,19" fill="#1BA9F5" />
+              <polygon points="24,11 30,11 26,19 20,19" fill="#F04E98" />
+              <polygon points="7,20 19,20 15,28 3,28" fill="#0A5BB0" />
+              <polygon points="20,20 26,20 22,28 16,28" fill="#FA744E" />
             </svg>
             Open in Kibana
           </button>
