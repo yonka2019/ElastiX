@@ -578,9 +578,12 @@ export default function App() {
             activeDragId={activeDrag?.kind === 'template' ? `tpl:${activeDrag.templateId}` : null}
           />
         </div>
-        <footer className="shrink-0 border-t border-neutral-200 bg-neutral-50 px-5 py-1.5 text-center font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-400">
+        <div
+          aria-hidden
+          className="pointer-events-none fixed bottom-2 right-3 z-40 font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-500 dark:text-neutral-400"
+        >
           by yonka
-        </footer>
+        </div>
       </div>
 
       <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(.2,.7,.2,1)' }}>
