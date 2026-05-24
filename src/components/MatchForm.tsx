@@ -4,20 +4,23 @@ import { MODE_META } from '../types';
 
 type Props = {
   sectionMode: BoolMode;
+  initialTitle?: string;
   initialField: string;
   initialValue: string;
-  onSubmit: (patch: { field: string; value: string }) => void;
+  onSubmit: (patch: { title?: string; field: string; value: string }) => void;
   onCancel: () => void;
 };
 
 export function MatchForm({
   sectionMode,
+  initialTitle,
   initialField,
   initialValue,
   onSubmit,
   onCancel,
 }: Props) {
   const meta = MODE_META[sectionMode];
+  const [title, setTitle] = useState(initialTitle ?? '');
   const [field, setField] = useState(initialField);
   const [value, setValue] = useState(initialValue);
   const canSave = field.trim().length > 0 && value.trim().length > 0;
@@ -33,6 +36,17 @@ export function MatchForm({
       </div>
 
       <label className="block text-[11px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+        Title (optional)
+      </label>
+      <input
+        className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:border-neutral-500"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="e.g. error keywords"
+        spellCheck={false}
+      />
+
+      <label className="mt-3 block text-[11px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
         Field
       </label>
       <input
@@ -68,7 +82,7 @@ export function MatchForm({
           Cancel
         </button>
         <button
-          onClick={() => canSave && onSubmit({ field: field.trim(), value: value.trim() })}
+          onClick={() => canSave && onSubmit({ title: title.trim() || undefined, field: field.trim(), value: value.trim() })}
           disabled={!canSave}
           className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-300 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200 dark:disabled:bg-neutral-700 dark:disabled:text-neutral-500"
         >

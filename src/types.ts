@@ -78,15 +78,19 @@ export type Template = {
   query: Record<string, unknown>;
 };
 
+// All leaf clause kinds accept an optional `title` — a free-text label the
+// user can attach so the row in the builder reads as something meaningful
+// (e.g. "prod traffic only") instead of just the field name. Empty/undefined
+// falls back to the field-based default in BuilderRow.
 export type BuilderSource =
   | { kind: 'template'; templateId: string }
   | { kind: 'custom'; name: string; query: Record<string, unknown> }
-  | { kind: 'timestamp'; field: string; gte?: string; lte?: string }
-  | { kind: 'term'; field: string; value: string }
-  | { kind: 'match'; field: string; value: string }
-  | { kind: 'terms'; field: string; values: string[] }
-  | { kind: 'wildcard'; field: string; value: string }
-  | { kind: 'exists'; field: string }
+  | { kind: 'timestamp'; title?: string; field: string; gte?: string; lte?: string }
+  | { kind: 'term'; title?: string; field: string; value: string }
+  | { kind: 'match'; title?: string; field: string; value: string }
+  | { kind: 'terms'; title?: string; field: string; values: string[] }
+  | { kind: 'wildcard'; title?: string; field: string; value: string }
+  | { kind: 'exists'; title?: string; field: string }
   | { kind: 'bool'; block: ModeBlock };
 
 export type BuilderItem = {

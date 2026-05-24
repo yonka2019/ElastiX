@@ -93,22 +93,22 @@ type StoreState = {
     payload: { field: string; value: string },
     atIndex?: number
   ) => string | null;
-  updateWildcardItem: (instanceId: string, patch: { field?: string; value?: string }) => void;
+  updateWildcardItem: (instanceId: string, patch: { title?: string; field?: string; value?: string }) => void;
   updateCustomItem: (
     instanceId: string,
     patch: { name?: string; query?: Record<string, unknown> }
   ) => void;
   updateTimestampItem: (
     instanceId: string,
-    patch: { field?: string; gte?: string; lte?: string }
+    patch: { title?: string; field?: string; gte?: string; lte?: string }
   ) => void;
-  updateTermItem: (instanceId: string, patch: { field?: string; value?: string }) => void;
-  updateMatchItem: (instanceId: string, patch: { field?: string; value?: string }) => void;
+  updateTermItem: (instanceId: string, patch: { title?: string; field?: string; value?: string }) => void;
+  updateMatchItem: (instanceId: string, patch: { title?: string; field?: string; value?: string }) => void;
   updateTermsItem: (
     instanceId: string,
-    patch: { field?: string; values?: string[] }
+    patch: { title?: string; field?: string; values?: string[] }
   ) => void;
-  updateExistsItem: (instanceId: string, patch: { field?: string }) => void;
+  updateExistsItem: (instanceId: string, patch: { title?: string; field?: string }) => void;
   removeItem: (instanceId: string) => void;
   moveItemToBlock: (instanceId: string, toBlockId: string, atIndex?: number) => void;
   reorderItemInBlock: (blockId: string, fromIndex: number, toIndex: number) => void;
@@ -445,6 +445,7 @@ export const useStore = create<StoreState>()(
                 ...existing,
                 source: {
                   kind: 'wildcard',
+                  title: patch.title !== undefined ? patch.title || undefined : existing.source.title,
                   field: patch.field ?? existing.source.field,
                   value: patch.value ?? existing.source.value,
                 },
@@ -495,6 +496,7 @@ export const useStore = create<StoreState>()(
                 ...existing,
                 source: {
                   kind: 'timestamp',
+                  title: patch.title !== undefined ? patch.title || undefined : existing.source.title,
                   field: patch.field ?? existing.source.field,
                   gte: patch.gte !== undefined ? patch.gte : existing.source.gte,
                   lte: patch.lte !== undefined ? patch.lte : existing.source.lte,
@@ -521,6 +523,7 @@ export const useStore = create<StoreState>()(
                 ...existing,
                 source: {
                   kind: 'term',
+                  title: patch.title !== undefined ? patch.title || undefined : existing.source.title,
                   field: patch.field ?? existing.source.field,
                   value: patch.value ?? existing.source.value,
                 },
@@ -546,6 +549,7 @@ export const useStore = create<StoreState>()(
                 ...existing,
                 source: {
                   kind: 'match',
+                  title: patch.title !== undefined ? patch.title || undefined : existing.source.title,
                   field: patch.field ?? existing.source.field,
                   value: patch.value ?? existing.source.value,
                 },
@@ -571,6 +575,7 @@ export const useStore = create<StoreState>()(
                 ...existing,
                 source: {
                   kind: 'terms',
+                  title: patch.title !== undefined ? patch.title || undefined : existing.source.title,
                   field: patch.field ?? existing.source.field,
                   values: patch.values ?? existing.source.values,
                 },
@@ -596,6 +601,7 @@ export const useStore = create<StoreState>()(
                 ...existing,
                 source: {
                   kind: 'exists',
+                  title: patch.title !== undefined ? patch.title || undefined : existing.source.title,
                   field: patch.field ?? existing.source.field,
                 },
               };

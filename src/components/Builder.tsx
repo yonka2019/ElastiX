@@ -112,12 +112,6 @@ function EmptyState({ hint, over }: { hint: boolean; over: boolean }) {
       <div className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
         {over ? 'Release to add the block' : hint ? 'Drop here to add this block' : 'Drag a block from the left'}
       </div>
-      <div className="max-w-md text-sm text-neutral-500 dark:text-neutral-400">
-        Build your query by stacking <span className="font-mono text-emerald-700 dark:text-emerald-300">must</span>,{' '}
-        <span className="font-mono text-sky-700 dark:text-sky-300">should</span>, and{' '}
-        <span className="font-mono text-rose-700 dark:text-rose-300">must_not</span> blocks. Then drop templates
-        from the right under each block, or write your own custom clauses inside.
-      </div>
     </div>
   );
 }

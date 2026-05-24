@@ -84,6 +84,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
       <div ref={setNodeRef} style={style} className="drop-in">
         <TimestampRangeForm
           sectionMode={sectionMode}
+          initialTitle={item.source.title}
           initialField={item.source.field}
           initialGte={item.source.gte}
           initialLte={item.source.lte}
@@ -101,6 +102,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
       <div ref={setNodeRef} style={style} className="drop-in">
         <TermForm
           sectionMode={sectionMode}
+          initialTitle={item.source.title}
           initialField={item.source.field}
           initialValue={item.source.value}
           onSubmit={(patch) => {
@@ -117,6 +119,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
       <div ref={setNodeRef} style={style} className="drop-in">
         <MatchForm
           sectionMode={sectionMode}
+          initialTitle={item.source.title}
           initialField={item.source.field}
           initialValue={item.source.value}
           onSubmit={(patch) => {
@@ -133,6 +136,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
       <div ref={setNodeRef} style={style} className="drop-in">
         <WildcardForm
           sectionMode={sectionMode}
+          initialTitle={item.source.title}
           initialField={item.source.field}
           initialValue={item.source.value}
           onSubmit={(patch) => {
@@ -149,6 +153,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
       <div ref={setNodeRef} style={style} className="drop-in">
         <TermsForm
           sectionMode={sectionMode}
+          initialTitle={item.source.title}
           initialField={item.source.field}
           initialValues={item.source.values}
           onSubmit={(patch) => {
@@ -165,6 +170,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
       <div ref={setNodeRef} style={style} className="drop-in">
         <ExistsForm
           sectionMode={sectionMode}
+          initialTitle={item.source.title}
           initialField={item.source.field}
           onSubmit={(patch) => {
             updateExistsItem(item.instanceId, patch);
@@ -207,7 +213,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
     label = item.source.name;
     queryPreview = JSON.stringify(item.source.query);
   } else if (item.source.kind === 'timestamp') {
-    label = `${item.source.field} range`;
+    label = item.source.title || `${item.source.field} range`;
     const gte = item.source.gte ?? '…';
     const lte = item.source.lte ?? '…';
     description = `${gte} → ${lte}`;
@@ -220,26 +226,28 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
       },
     });
   } else if (item.source.kind === 'term') {
-    label = item.source.field || '(unset)';
-    description = item.source.value ? `= ${item.source.value}` : 'no value';
+    label = item.source.title || item.source.field || '(unset)';
+    description = item.source.value ? `${item.source.field || '?'} = ${item.source.value}` : 'no value';
     queryPreview = JSON.stringify({ term: { [item.source.field || '_field']: item.source.value } });
   } else if (item.source.kind === 'match') {
-    label = item.source.field || '(unset)';
-    description = item.source.value ? `~ ${item.source.value}` : 'no value';
+    label = item.source.title || item.source.field || '(unset)';
+    description = item.source.value ? `${item.source.field || '?'} ~ ${item.source.value}` : 'no value';
     queryPreview = JSON.stringify({ match: { [item.source.field || '_field']: item.source.value } });
   } else if (item.source.kind === 'wildcard') {
-    label = item.source.field || '(unset)';
-    description = item.source.value ? `~ ${item.source.value}` : 'no pattern';
+    label = item.source.title || item.source.field || '(unset)';
+    description = item.source.value ? `${item.source.field || '?'} ~ ${item.source.value}` : 'no pattern';
     queryPreview = JSON.stringify({ wildcard: { [item.source.field || '_field']: item.source.value } });
   } else if (item.source.kind === 'terms') {
-    label = item.source.field || '(unset)';
+    label = item.source.title || item.source.field || '(unset)';
     description =
-      item.source.values.length > 0 ? `IN (${item.source.values.join(', ')})` : 'no values';
+      item.source.values.length > 0
+        ? `${item.source.field || '?'} IN (${item.source.values.join(', ')})`
+        : 'no values';
     queryPreview = JSON.stringify({ terms: { [item.source.field || '_field']: item.source.values } });
   } else {
     // exists
-    label = item.source.field || '(unset)';
-    description = 'must be present';
+    label = item.source.title || item.source.field || '(unset)';
+    description = `${item.source.field || '?'} must be present`;
     queryPreview = JSON.stringify({ exists: { field: item.source.field } });
   }
 

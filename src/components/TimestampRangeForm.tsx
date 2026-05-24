@@ -5,10 +5,11 @@ import { parseDateMath, formatResolved, toISOZ } from '../utils/dateMath';
 
 type Props = {
   sectionMode: BoolMode;
+  initialTitle?: string;
   initialField: string;
   initialGte?: string;
   initialLte?: string;
-  onSubmit: (patch: { field: string; gte?: string; lte?: string }) => void;
+  onSubmit: (patch: { title?: string; field: string; gte?: string; lte?: string }) => void;
   onCancel: () => void;
 };
 
@@ -25,6 +26,7 @@ function describe(expr: string): { ok: boolean; text: string } {
 
 export function TimestampRangeForm({
   sectionMode,
+  initialTitle,
   initialField,
   initialGte,
   initialLte,
@@ -32,6 +34,7 @@ export function TimestampRangeForm({
   onCancel,
 }: Props) {
   const meta = MODE_META[sectionMode];
+  const [title, setTitle] = useState(initialTitle ?? '');
   const [field, setField] = useState(initialField);
   const [gte, setGte] = useState(initialGte ?? '');
   const [lte, setLte] = useState(initialLte ?? '');
@@ -68,6 +71,7 @@ export function TimestampRangeForm({
   const submit = () => {
     if (!canSave) return;
     onSubmit({
+      title: title.trim() || undefined,
       field: field.trim() || 'createdAt',
       gte: gteOut,
       lte: lteOut,
@@ -83,6 +87,17 @@ export function TimestampRangeForm({
       </div>
 
       <label className="block text-[11px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+        Title (optional)
+      </label>
+      <input
+        className="mt-1 w-full rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:border-neutral-500"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="e.g. last 15 minutes"
+        spellCheck={false}
+      />
+
+      <label className="mt-3 block text-[11px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
         Field
       </label>
       <input
