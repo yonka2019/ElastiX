@@ -4,9 +4,10 @@ import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import type { ModeBlock, Template } from '../types';
 import { MODE_META } from '../types';
-import { useStore } from '../store';
+import { useStore, buildBlockQuery } from '../store';
 import { BuilderRow } from './BuilderRow';
 import { ModeIcon } from './icons';
+import { usePreview } from '../utils/preview';
 
 type Props = {
   block: ModeBlock;
@@ -38,6 +39,8 @@ function BlockCardImpl({
   const removeItem = useStore((s) => s.removeItem);
   const removeBlock = useStore((s) => s.removeBlock);
   const renameBlock = useStore((s) => s.renameBlock);
+  const templates = useStore((s) => s.templates);
+  const { open: openPreview } = usePreview();
 
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(block.name ?? '');
@@ -174,6 +177,22 @@ function BlockCardImpl({
             ↳ drop into {displayName}
           </span>
         )}
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            openPreview(displayName, buildBlockQuery(templates, block));
+          }}
+          className="rounded p-1 text-white/70 hover:bg-white/20 hover:text-white"
+          title="Preview JSON for this block"
+          aria-label="Preview block JSON"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
         <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 font-mono text-[11px] font-semibold backdrop-blur">
           {block.items.length} {block.items.length === 1 ? 'item' : 'items'}
         </span>

@@ -3,7 +3,8 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { BoolMode, BuilderItem, Template } from '../types';
 import { MODE_META } from '../types';
-import { useStore } from '../store';
+import { useStore, resolveItem } from '../store';
+import { usePreview } from '../utils/preview';
 import { CustomBlockForm } from './CustomBlockForm';
 import { TimestampRangeForm } from './TimestampRangeForm';
 import { TermForm } from './TermForm';
@@ -31,6 +32,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
   const updateExistsItem = useStore((s) => s.updateExistsItem);
   const updateWildcardItem = useStore((s) => s.updateWildcardItem);
   const pendingEditId = useStore((s) => s.pendingEditId);
+  const { open: openPreview } = usePreview();
   const setPendingEditId = useStore((s) => s.setPendingEditId);
   const meta = MODE_META[sectionMode];
 
@@ -404,6 +406,34 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
       </div>
 
       <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        {(() => {
+          const previewValue = resolveItem(Array.from(templatesById.values()), item);
+          const previewDisabled = previewValue === undefined;
+          const previewTitle =
+            item.source.kind === 'template'
+              ? (templatesById.get(item.source.templateId)?.name ?? 'template')
+              : item.source.kind === 'custom'
+              ? item.source.name
+              : item.source.kind;
+          return (
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!previewDisabled) openPreview(previewTitle, previewValue);
+              }}
+              disabled={previewDisabled}
+              className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:text-neutral-300 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100 dark:disabled:text-neutral-700"
+              title={previewDisabled ? 'Nothing to preview yet' : 'Preview JSON'}
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+          );
+        })()}
         {editable && (
           <button
             onClick={() => setEditing(true)}

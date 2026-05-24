@@ -793,65 +793,87 @@ export function modeOccurrences(blocks: ModeBlock[]): Record<BoolMode, number> {
   return counts;
 }
 
+function resolveItemWithMap(
+  byId: Map<string, Template>,
+  item: BuilderItem
+): Record<string, unknown> | undefined {
+  if (item.source.kind === 'template') return byId.get(item.source.templateId)?.query;
+  if (item.source.kind === 'custom') return item.source.query;
+  if (item.source.kind === 'timestamp') {
+    const bounds: Record<string, unknown> = {};
+    if (item.source.gte) bounds.gte = item.source.gte;
+    if (item.source.lte) bounds.lte = item.source.lte;
+    if (Object.keys(bounds).length === 0) return undefined;
+    return { range: { [item.source.field]: bounds } };
+  }
+  if (item.source.kind === 'term') {
+    if (!item.source.field.trim() || !item.source.value.trim()) return undefined;
+    return { term: { [item.source.field]: item.source.value } };
+  }
+  if (item.source.kind === 'match') {
+    if (!item.source.field.trim() || !item.source.value.trim()) return undefined;
+    return { match: { [item.source.field]: item.source.value } };
+  }
+  if (item.source.kind === 'wildcard') {
+    if (!item.source.field.trim() || !item.source.value.trim()) return undefined;
+    return { wildcard: { [item.source.field]: item.source.value } };
+  }
+  if (item.source.kind === 'terms') {
+    const cleaned = item.source.values.map((v) => v.trim()).filter(Boolean);
+    if (!item.source.field.trim() || cleaned.length === 0) return undefined;
+    return { terms: { [item.source.field]: cleaned } };
+  }
+  if (item.source.kind === 'exists') {
+    if (!item.source.field.trim()) return undefined;
+    return { exists: { field: item.source.field } };
+  }
+  const inner = makeBoolInnerWithMap(byId, [item.source.block]);
+  if (Object.keys(inner).length === 0) return undefined;
+  return { bool: inner };
+}
+
+function makeBoolInnerWithMap(
+  byId: Map<string, Template>,
+  bs: ModeBlock[]
+): Record<string, unknown> {
+  const buckets: Record<BoolMode, Array<Record<string, unknown>>> = {
+    must: [],
+    should: [],
+    must_not: [],
+  };
+  for (const block of bs) {
+    for (const item of block.items) {
+      const q = resolveItemWithMap(byId, item);
+      if (q) buckets[block.mode].push(q);
+    }
+  }
+  const out: Record<string, unknown> = {};
+  for (const m of MODE_ORDER) {
+    if (buckets[m].length) out[m] = buckets[m];
+  }
+  return out;
+}
+
+export function resolveItem(
+  templates: Template[],
+  item: BuilderItem
+): Record<string, unknown> | undefined {
+  const byId = new Map(templates.map((t) => [t.id, t]));
+  return resolveItemWithMap(byId, item);
+}
+
+export function buildBlockQuery(
+  templates: Template[],
+  block: ModeBlock
+): Record<string, unknown> {
+  const byId = new Map(templates.map((t) => [t.id, t]));
+  const inner = makeBoolInnerWithMap(byId, [block]);
+  return { bool: inner };
+}
+
 export function buildQuery(templates: Template[], blocks: ModeBlock[]): Record<string, unknown> {
   const byId = new Map(templates.map((t) => [t.id, t]));
-
-  function resolve(item: BuilderItem): Record<string, unknown> | undefined {
-    if (item.source.kind === 'template') return byId.get(item.source.templateId)?.query;
-    if (item.source.kind === 'custom') return item.source.query;
-    if (item.source.kind === 'timestamp') {
-      const bounds: Record<string, unknown> = {};
-      if (item.source.gte) bounds.gte = item.source.gte;
-      if (item.source.lte) bounds.lte = item.source.lte;
-      if (Object.keys(bounds).length === 0) return undefined;
-      return { range: { [item.source.field]: bounds } };
-    }
-    if (item.source.kind === 'term') {
-      if (!item.source.field.trim() || !item.source.value.trim()) return undefined;
-      return { term: { [item.source.field]: item.source.value } };
-    }
-    if (item.source.kind === 'match') {
-      if (!item.source.field.trim() || !item.source.value.trim()) return undefined;
-      return { match: { [item.source.field]: item.source.value } };
-    }
-    if (item.source.kind === 'terms') {
-      const cleaned = item.source.values.map((v) => v.trim()).filter(Boolean);
-      if (!item.source.field.trim() || cleaned.length === 0) return undefined;
-      return { terms: { [item.source.field]: cleaned } };
-    }
-    if (item.source.kind === 'exists') {
-      if (!item.source.field.trim()) return undefined;
-      return { exists: { field: item.source.field } };
-    }
-    if (item.source.kind === 'wildcard') {
-      if (!item.source.field.trim() || !item.source.value.trim()) return undefined;
-      return { wildcard: { [item.source.field]: item.source.value } };
-    }
-    const inner = makeBoolInner([item.source.block]);
-    if (Object.keys(inner).length === 0) return undefined;
-    return { bool: inner };
-  }
-
-  function makeBoolInner(bs: ModeBlock[]): Record<string, unknown> {
-    const buckets: Record<BoolMode, Array<Record<string, unknown>>> = {
-      must: [],
-      should: [],
-      must_not: [],
-    };
-    for (const block of bs) {
-      for (const item of block.items) {
-        const q = resolve(item);
-        if (q) buckets[block.mode].push(q);
-      }
-    }
-    const out: Record<string, unknown> = {};
-    for (const m of MODE_ORDER) {
-      if (buckets[m].length) out[m] = buckets[m];
-    }
-    return out;
-  }
-
-  const inner = makeBoolInner(blocks);
+  const inner = makeBoolInnerWithMap(byId, blocks);
   if (Object.keys(inner).length === 0) {
     return { query: { match_all: {} } };
   }
