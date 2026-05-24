@@ -44,6 +44,7 @@ function BlockCardImpl({
 
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(block.name ?? '');
+  const [collapsed, setCollapsed] = useState(false);
   const displayName = block.name?.trim() || meta.label;
 
   const commitName = () => {
@@ -94,6 +95,9 @@ function BlockCardImpl({
   const isDragIntoBlockActive =
     isDraggingTemplate || isDraggingItem || isDraggingIntoBlock;
   const showsHint = isDragIntoBlockActive && !isOver;
+  // Auto-expand while any drag is active so the user can drop into a
+  // collapsed block without first un-collapsing it.
+  const bodyVisible = !collapsed || isDragIntoBlockActive;
 
   const onRemove = () => {
     if (nested) removeItem(nested.instanceId);
@@ -129,6 +133,31 @@ function BlockCardImpl({
         >
           ⋮⋮
         </span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setCollapsed((v) => !v);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="rounded p-1 text-white/70 hover:bg-white/20 hover:text-white"
+          title={collapsed ? 'Expand block' : 'Collapse block'}
+          aria-label={collapsed ? 'Expand block' : 'Collapse block'}
+          aria-expanded={!collapsed}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className={`h-3.5 w-3.5 transition-transform ${collapsed ? '-rotate-90' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur">
           <ModeIcon mode={block.mode} className="h-4 w-4 text-white" />
         </span>
@@ -205,9 +234,12 @@ function BlockCardImpl({
         </button>
       </header>
 
-      {/* Block body with drop zone */}
+      {/* Block body with drop zone. Hidden when collapsed unless a drag is
+          active (auto-expand) — the dropzone needs to be in the DOM tree
+          for dnd-kit to register it as a target. */}
       <div
         ref={setDropRef}
+        hidden={!bodyVisible}
         className={[
           'relative transition-colors',
           isOver ? meta.softBgStrong : meta.softBg,
