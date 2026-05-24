@@ -28,6 +28,9 @@ export function useTheme(): { theme: Theme; toggle: () => void; setTheme: (t: Th
     return readStored() ?? (systemPrefersDark() ? 'dark' : 'light');
   });
 
+  // Apply on mount so the initial DOM matches the chosen theme (the bootstrap
+  // script in index.html handles this for the FIRST paint, but on dev HMR
+  // remounts we still need to sync).
   useEffect(() => {
     apply(theme);
   }, [theme]);
@@ -46,6 +49,10 @@ export function useTheme(): { theme: Theme; toggle: () => void; setTheme: (t: Th
     } catch {
       /* ignore */
     }
+    // Apply immediately rather than waiting for the next effect tick. This
+    // makes the toggle feel instant and avoids any chance of the effect not
+    // running (e.g., if some downstream code throws during render).
+    apply(t);
     setThemeState(t);
   }, []);
 

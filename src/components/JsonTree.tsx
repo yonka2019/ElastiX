@@ -35,11 +35,27 @@ function Node({
 
 function Line({ pad, keyLabel, children }: { pad: { paddingLeft: number }; keyLabel?: string; children: ReactNode }) {
   return (
-    <div style={pad} className="whitespace-pre">
+    <div style={pad} className="whitespace-pre flex items-start">
+      <ToggleSpacer />
       {keyLabel !== undefined && <><Key k={keyLabel} /><Punct>: </Punct></>}
       {children}
     </div>
   );
+}
+
+// A toggle is only useful if collapsing would actually hide multiple lines.
+// Single-primitive children render on a single line, so the toggle would do
+// nothing visually. Suppress it.
+function isComplexValue(v: unknown): boolean {
+  if (v === null || typeof v !== 'object') return false;
+  if (Array.isArray(v)) return v.length > 0;
+  return Object.keys(v as object).length > 0;
+}
+
+function shouldShowToggle(values: unknown[]): boolean {
+  if (values.length === 0) return false;
+  if (values.length > 1) return true;
+  return isComplexValue(values[0]);
 }
 
 function ObjectNode({
@@ -57,6 +73,7 @@ function ObjectNode({
   const keys = Object.keys(obj);
   const empty = keys.length === 0;
   const pad = { paddingLeft: depth * 12 };
+  const showToggle = shouldShowToggle(keys.map((k) => obj[k]));
 
   if (empty) {
     return (
@@ -69,10 +86,14 @@ function ObjectNode({
   return (
     <div>
       <div style={pad} className="flex items-start whitespace-pre">
-        <Toggle open={open} onClick={() => setOpen((v) => !v)} />
+        {showToggle ? (
+          <Toggle open={open} onClick={() => setOpen((v) => !v)} />
+        ) : (
+          <ToggleSpacer />
+        )}
         {keyLabel !== undefined && <><Key k={keyLabel} /><Punct>: </Punct></>}
         <Punct>{'{'}</Punct>
-        {!open && (
+        {showToggle && !open && (
           <span className="text-neutral-400 dark:text-neutral-500">
             {` … ${keys.length} ${keys.length === 1 ? 'key' : 'keys'} `}
             <Punct>{'}'}</Punct>
@@ -80,12 +101,13 @@ function ObjectNode({
           </span>
         )}
       </div>
-      {open && (
+      {(open || !showToggle) && (
         <>
           {keys.map((k, i) => (
             <Node key={k} value={obj[k]} depth={depth + 1} isLast={i === keys.length - 1} keyLabel={k} />
           ))}
-          <div style={pad} className="whitespace-pre">
+          <div style={pad} className="whitespace-pre flex items-start">
+            <ToggleSpacer />
             <Punct>{'}'}</Punct>{comma}
           </div>
         </>
@@ -108,6 +130,7 @@ function ArrayNode({
   const [open, setOpen] = useState(true);
   const empty = arr.length === 0;
   const pad = { paddingLeft: depth * 12 };
+  const showToggle = shouldShowToggle(arr);
 
   if (empty) {
     return (
@@ -120,10 +143,14 @@ function ArrayNode({
   return (
     <div>
       <div style={pad} className="flex items-start whitespace-pre">
-        <Toggle open={open} onClick={() => setOpen((v) => !v)} />
+        {showToggle ? (
+          <Toggle open={open} onClick={() => setOpen((v) => !v)} />
+        ) : (
+          <ToggleSpacer />
+        )}
         {keyLabel !== undefined && <><Key k={keyLabel} /><Punct>: </Punct></>}
         <Punct>{'['}</Punct>
-        {!open && (
+        {showToggle && !open && (
           <span className="text-neutral-400 dark:text-neutral-500">
             {` … ${arr.length} ${arr.length === 1 ? 'item' : 'items'} `}
             <Punct>{']'}</Punct>
@@ -131,18 +158,23 @@ function ArrayNode({
           </span>
         )}
       </div>
-      {open && (
+      {(open || !showToggle) && (
         <>
           {arr.map((v, i) => (
             <Node key={i} value={v} depth={depth + 1} isLast={i === arr.length - 1} />
           ))}
-          <div style={pad} className="whitespace-pre">
+          <div style={pad} className="whitespace-pre flex items-start">
+            <ToggleSpacer />
             <Punct>{']'}</Punct>{comma}
           </div>
         </>
       )}
     </div>
   );
+}
+
+function ToggleSpacer() {
+  return <span className="mr-1 inline-block h-4 w-4 shrink-0" aria-hidden />;
 }
 
 function Toggle({ open, onClick }: { open: boolean; onClick: () => void }) {

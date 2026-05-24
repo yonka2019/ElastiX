@@ -578,7 +578,7 @@ export default function App() {
             activeDragId={activeDrag?.kind === 'template' ? `tpl:${activeDrag.templateId}` : null}
           />
         </div>
-        <footer className="shrink-0 border-t border-neutral-200 bg-white px-5 py-1 text-center font-mono text-[10px] uppercase tracking-wider text-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-500">
+        <footer className="shrink-0 border-t border-neutral-200 bg-neutral-50 px-5 py-1.5 text-center font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-400">
           by yonka
         </footer>
       </div>
@@ -733,12 +733,17 @@ function Header() {
                 : 'Set KIBANA_URL in .env to enable'
             }
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
+              <rect x="3" y="5" width="18" height="3" rx="1.5" fill="#10b981" />
+              <rect x="5" y="10.5" width="14" height="3" rx="1.5" fill="#0ea5e9" />
+              <rect x="7" y="16" width="10" height="3" rx="1.5" fill="#f43f5e" />
+            </svg>
+            Open in Kibana
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 opacity-60" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M14 3h7v7" />
               <path d="M10 14L21 3" />
               <path d="M21 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h6" />
             </svg>
-            Open in Kibana
           </button>
         </div>
       </header>

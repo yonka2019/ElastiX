@@ -35,7 +35,7 @@ export const MODE_META: Record<
     accentText: 'text-emerald-700 dark:text-emerald-300',
     headerText: 'text-emerald-900 dark:text-emerald-100',
     headerSolid: 'bg-gradient-to-r from-emerald-600 to-emerald-500',
-    blockShadow: 'shadow-emerald-200/40',
+    blockShadow: 'shadow-emerald-200/40 dark:shadow-emerald-900/30',
   },
   should: {
     label: 'should',
@@ -51,7 +51,7 @@ export const MODE_META: Record<
     accentText: 'text-sky-700 dark:text-sky-300',
     headerText: 'text-sky-900 dark:text-sky-100',
     headerSolid: 'bg-gradient-to-r from-sky-600 to-sky-500',
-    blockShadow: 'shadow-sky-200/40',
+    blockShadow: 'shadow-sky-200/40 dark:shadow-sky-900/30',
   },
   must_not: {
     label: 'must_not',
@@ -67,7 +67,7 @@ export const MODE_META: Record<
     accentText: 'text-rose-700 dark:text-rose-300',
     headerText: 'text-rose-900 dark:text-rose-100',
     headerSolid: 'bg-gradient-to-r from-rose-600 to-rose-500',
-    blockShadow: 'shadow-rose-200/40',
+    blockShadow: 'shadow-rose-200/40 dark:shadow-rose-900/30',
   },
 };
 
