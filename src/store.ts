@@ -88,6 +88,12 @@ type StoreState = {
     payload: { field: string },
     atIndex?: number
   ) => string | null;
+  addWildcardToBlock: (
+    blockId: string,
+    payload: { field: string; value: string },
+    atIndex?: number
+  ) => string | null;
+  updateWildcardItem: (instanceId: string, patch: { field?: string; value?: string }) => void;
   updateCustomItem: (
     instanceId: string,
     patch: { name?: string; query?: Record<string, unknown> }
@@ -404,6 +410,47 @@ export const useStore = create<StoreState>()(
           }),
         }));
         return added ? instanceId : null;
+      },
+
+      addWildcardToBlock: (blockId, { field, value }, atIndex) => {
+        const instanceId = uuidv4();
+        let added = false;
+        set((s) => ({
+          blocks: updateBlockById(s.blocks, blockId, (b) => {
+            added = true;
+            const item: BuilderItem = {
+              instanceId,
+              source: { kind: 'wildcard', field, value },
+            };
+            return { ...b, items: insertAt(b.items, item, atIndex) };
+          }),
+        }));
+        return added ? instanceId : null;
+      },
+
+      updateWildcardItem: (instanceId, patch) => {
+        set((s) => {
+          const loc = locateItem(s.blocks, instanceId);
+          if (!loc) return s;
+          return {
+            blocks: updateBlockById(s.blocks, loc.parentBlockId, (b) => {
+              const idx = b.items.findIndex((x) => x.instanceId === instanceId);
+              if (idx < 0) return b;
+              const existing = b.items[idx];
+              if (existing.source.kind !== 'wildcard') return b;
+              const items = [...b.items];
+              items[idx] = {
+                ...existing,
+                source: {
+                  kind: 'wildcard',
+                  field: patch.field ?? existing.source.field,
+                  value: patch.value ?? existing.source.value,
+                },
+              };
+              return { ...b, items };
+            }),
+          };
+        });
       },
 
       updateCustomItem: (instanceId, patch) => {
@@ -775,6 +822,10 @@ export function buildQuery(templates: Template[], blocks: ModeBlock[]): Record<s
     if (item.source.kind === 'exists') {
       if (!item.source.field.trim()) return undefined;
       return { exists: { field: item.source.field } };
+    }
+    if (item.source.kind === 'wildcard') {
+      if (!item.source.field.trim() || !item.source.value.trim()) return undefined;
+      return { wildcard: { [item.source.field]: item.source.value } };
     }
     const inner = makeBoolInner([item.source.block]);
     if (Object.keys(inner).length === 0) return undefined;

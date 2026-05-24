@@ -9,6 +9,7 @@ export type LeafPaletteId =
   | 'timestamp-range'
   | 'term'
   | 'match'
+  | 'wildcard'
   | 'terms'
   | 'exists';
 
@@ -46,6 +47,16 @@ type LeafSpec =
   | {
       id: 'match';
       kind: 'match';
+      label: string;
+      caption: string;
+      glyph: ReactNode;
+      accent: string;
+      ring: string;
+      payload: { field: string; value: string };
+    }
+  | {
+      id: 'wildcard';
+      kind: 'wildcard';
       label: string;
       caption: string;
       glyph: ReactNode;
@@ -142,6 +153,23 @@ const TermsGlyph = (
   </svg>
 );
 
+const WildcardGlyph = (
+  <svg
+    viewBox="0 0 24 24"
+    className="h-3.5 w-3.5"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M12 4v16" />
+    <path d="M5.5 7.5l13 9" />
+    <path d="M5.5 16.5l13 -9" />
+  </svg>
+);
+
 const ExistsGlyph = (
   <svg
     viewBox="0 0 24 24"
@@ -197,6 +225,16 @@ export const LEAF_PALETTE: LeafSpec[] = [
     glyph: MatchGlyph,
     accent: 'text-rose-700 dark:text-rose-300',
     ring: 'hover:ring-rose-200 dark:hover:ring-rose-800',
+    payload: { field: '', value: '' },
+  },
+  {
+    id: 'wildcard',
+    kind: 'wildcard',
+    label: 'wildcard',
+    caption: 'pattern * ?',
+    glyph: WildcardGlyph,
+    accent: 'text-yellow-700 dark:text-yellow-300',
+    ring: 'hover:ring-yellow-200 dark:hover:ring-yellow-800',
     payload: { field: '', value: '' },
   },
   {

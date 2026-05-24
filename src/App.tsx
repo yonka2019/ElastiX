@@ -50,6 +50,12 @@ type PaletteLeafDrag =
     }
   | {
       kind: 'palette-leaf';
+      leafId: 'wildcard';
+      leafKind: 'wildcard';
+      payload: { field: string; value: string };
+    }
+  | {
+      kind: 'palette-leaf';
       leafId: 'terms';
       leafKind: 'terms';
       payload: { field: string; values: string[] };
@@ -82,6 +88,7 @@ export default function App() {
   const addMatchToBlock = useStore((s) => s.addMatchToBlock);
   const addTermsToBlock = useStore((s) => s.addTermsToBlock);
   const addExistsToBlock = useStore((s) => s.addExistsToBlock);
+  const addWildcardToBlock = useStore((s) => s.addWildcardToBlock);
   const setPendingEditId = useStore((s) => s.setPendingEditId);
   const moveItemToBlock = useStore((s) => s.moveItemToBlock);
   const reorderItemInBlock = useStore((s) => s.reorderItemInBlock);
@@ -326,6 +333,9 @@ export default function App() {
         if (activeData.leafKind === 'match') {
           return addMatchToBlock(blockId, activeData.payload, atIndex);
         }
+        if (activeData.leafKind === 'wildcard') {
+          return addWildcardToBlock(blockId, activeData.payload, atIndex);
+        }
         if (activeData.leafKind === 'terms') {
           return addTermsToBlock(blockId, activeData.payload, atIndex);
         }
@@ -425,6 +435,8 @@ export default function App() {
       } else if (activeDrag.leafKind === 'term') {
         detail = activeDrag.payload.field || 'configure…';
       } else if (activeDrag.leafKind === 'match') {
+        detail = activeDrag.payload.field || 'configure…';
+      } else if (activeDrag.leafKind === 'wildcard') {
         detail = activeDrag.payload.field || 'configure…';
       } else if (activeDrag.leafKind === 'terms') {
         detail = activeDrag.payload.field || 'configure…';

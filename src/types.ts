@@ -85,6 +85,7 @@ export type BuilderSource =
   | { kind: 'term'; field: string; value: string }
   | { kind: 'match'; field: string; value: string }
   | { kind: 'terms'; field: string; values: string[] }
+  | { kind: 'wildcard'; field: string; value: string }
   | { kind: 'exists'; field: string }
   | { kind: 'bool'; block: ModeBlock };
 
