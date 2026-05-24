@@ -56,7 +56,7 @@ export function Builder({
 
       <div
         ref={setNodeRef}
-        className="flex-1 overflow-y-auto px-5 py-5"
+        className="flex-1 overflow-y-auto px-5 py-5 pb-10"
       >
         {empty ? (
           <EmptyState

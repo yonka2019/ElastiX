@@ -181,9 +181,13 @@ function BlockCardImpl({
               <button
                 onClick={startRename}
                 title="Click to rename this block"
-                className="truncate rounded px-1 font-mono text-sm font-bold tracking-wide text-white hover:bg-white/10"
+                className="inline-flex items-center gap-1 truncate rounded px-1 font-mono text-sm font-bold tracking-wide text-white hover:bg-white/10"
               >
-                {displayName}
+                <span className="truncate">{displayName}</span>
+                <svg viewBox="0 0 24 24" className="h-3 w-3 shrink-0 opacity-70" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                </svg>
               </button>
             )}
             {block.name && (

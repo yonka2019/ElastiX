@@ -332,7 +332,7 @@ export function ModeBlockPalette({ activeDragMode, activeDragLeaf }: Props) {
         <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Blocks</div>
         <div className="text-[11px] text-neutral-500 dark:text-neutral-400">Drag onto the builder</div>
       </div>
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-3">
+      <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-3 pb-10">
         {MODE_ORDER.map((m) => (
           <PaletteCard key={m} mode={m} isDragging={activeDragMode === m} />
         ))}

@@ -64,7 +64,7 @@ export function TemplateLibrary({ activeDragId }: Props) {
           )}
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto px-3 py-3">
+      <div className="flex-1 overflow-y-auto px-3 py-3 pb-10">
         {templatesError && (
           <div className="mb-3 rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
             <div className="font-semibold">Couldn't load templates.json</div>
