@@ -252,6 +252,17 @@ function HighlightedJsonEditor({
 
   return (
     <div className="relative">
+      <textarea
+        ref={taRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onScroll={syncScroll}
+        spellCheck={false}
+        rows={7}
+        className={`${sharedClasses} relative block resize-y border-neutral-300 bg-white text-transparent caret-neutral-900 focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:caret-neutral-100`}
+      />
+      {/* Rendered AFTER the textarea in DOM so it stacks visually on top of
+          the white background but lets clicks pass through. */}
       <pre
         ref={preRef}
         aria-hidden
@@ -262,19 +273,10 @@ function HighlightedJsonEditor({
             {tok.text}
           </span>
         ))}
-        {/* Trailing newline marker so the pre's height matches the textarea
-            when the user ends with a blank line. */}
+        {/* Trailing newline so the pre's height matches the textarea when
+            input ends with a blank line. */}
         {'\n'}
       </pre>
-      <textarea
-        ref={taRef}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onScroll={syncScroll}
-        spellCheck={false}
-        rows={7}
-        className={`${sharedClasses} relative resize-y border-neutral-300 bg-white text-transparent caret-neutral-900 focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:caret-neutral-100`}
-      />
     </div>
   );
 }
