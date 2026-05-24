@@ -736,10 +736,13 @@ function Header() {
                 : 'Set KIBANA_URL in .env to enable'
             }
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
-              <rect x="3" y="5" width="18" height="3" rx="1.5" fill="#10b981" />
-              <rect x="5" y="10.5" width="14" height="3" rx="1.5" fill="#0ea5e9" />
-              <rect x="7" y="16" width="10" height="3" rx="1.5" fill="#f43f5e" />
+            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-label="Elastic" role="img">
+              <rect x="3" y="4" width="9" height="3.5" rx="1.5" fill="#FED10A" />
+              <rect x="13" y="4" width="8" height="3.5" rx="1.5" fill="#00BFB3" />
+              <rect x="3" y="10.25" width="13" height="3.5" rx="1.5" fill="#1BA9F5" />
+              <rect x="17" y="10.25" width="4" height="3.5" rx="1.5" fill="#F04E98" />
+              <rect x="3" y="16.5" width="9" height="3.5" rx="1.5" fill="#0A5BB0" />
+              <rect x="13" y="16.5" width="8" height="3.5" rx="1.5" fill="#FA744E" />
             </svg>
             Open in Kibana
             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 opacity-60" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
