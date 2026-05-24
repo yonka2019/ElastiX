@@ -112,6 +112,7 @@ type StoreState = {
   removeItem: (instanceId: string) => void;
   moveItemToBlock: (instanceId: string, toBlockId: string, atIndex?: number) => void;
   reorderItemInBlock: (blockId: string, fromIndex: number, toIndex: number) => void;
+  promoteItemToTopLevel: (instanceId: string, atIndex?: number) => void;
 
   setPendingEditId: (id: string | null) => void;
 
@@ -653,6 +654,26 @@ export const useStore = create<StoreState>()(
             ...b,
             items: insertAt(b.items, item, atIndex),
           }));
+          return { blocks };
+        });
+      },
+
+      promoteItemToTopLevel: (instanceId, atIndex) => {
+        set((s) => {
+          const loc = locateItem(s.blocks, instanceId);
+          if (!loc) return s;
+          const parent = findBlockById(s.blocks, loc.parentBlockId);
+          if (!parent) return s;
+          const item = parent.items[loc.index];
+          if (!item || item.source.kind !== 'bool') return s;
+
+          const without = updateBlockById(s.blocks, loc.parentBlockId, (b) => ({
+            ...b,
+            items: b.items.filter((x) => x.instanceId !== instanceId),
+          }));
+
+          const inner = item.source.block;
+          const blocks = insertAt(without, inner, atIndex);
           return { blocks };
         });
       },

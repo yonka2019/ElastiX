@@ -92,6 +92,7 @@ export default function App() {
   const setPendingEditId = useStore((s) => s.setPendingEditId);
   const moveItemToBlock = useStore((s) => s.moveItemToBlock);
   const reorderItemInBlock = useStore((s) => s.reorderItemInBlock);
+  const promoteItemToTopLevel = useStore((s) => s.promoteItemToTopLevel);
   const loadTemplates = useStore((s) => s.loadTemplates);
   const loadConfig = useStore((s) => s.loadConfig);
 
@@ -389,6 +390,16 @@ export default function App() {
 
     // 4) Item drag — reorder within block, or move to another block (any depth).
     if (activeData.kind === 'item') {
+      // Dropping a nested bool item on the empty canvas promotes it to a
+      // new top-level block (preserving its items and name). Leaf items
+      // have no meaning at the top level so we ignore them.
+      if (overData.kind === 'builder-canvas') {
+        const item = getItem(blocks, activeData.instanceId);
+        if (item?.source.kind === 'bool') {
+          promoteItemToTopLevel(activeData.instanceId);
+        }
+        return;
+      }
       if (overData.kind === 'item') {
         if (activeData.instanceId === overData.instanceId) return;
         const src = locateItemPublic(blocks, activeData.instanceId);
