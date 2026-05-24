@@ -68,8 +68,17 @@ export function QueryOutput() {
     >
       <div
         onClick={() => setExpanded((v) => !v)}
-        className="flex cursor-pointer items-center gap-3 border-b border-blue-200 bg-gradient-to-r from-sky-50 via-blue-50 to-indigo-50 px-5 py-2 hover:from-sky-100 hover:via-blue-100 hover:to-indigo-100 dark:border-blue-900 dark:from-sky-950 dark:via-blue-950 dark:to-indigo-950 dark:hover:from-sky-900 dark:hover:via-blue-900 dark:hover:to-indigo-900"
+        className="group relative flex cursor-pointer items-center gap-3 overflow-hidden border-b border-blue-200 bg-gradient-to-r from-sky-50 via-blue-50 to-indigo-50 px-5 py-2 transition-colors duration-300 ease-out [&>*:not(.hover-overlay)]:relative [&>*:not(.hover-overlay)]:z-10 dark:border-blue-900 dark:from-sky-950 dark:via-blue-950 dark:to-indigo-950"
       >
+        {/* Hover gradient as a separately-faded overlay so the color
+            change is smooth — CSS can't tween background-image gradients
+            directly, but it can tween opacity. Direct children get
+            relative+z-10 via the arbitrary selector above so they paint
+            above this overlay. */}
+        <span
+          aria-hidden
+          className="hover-overlay pointer-events-none absolute inset-0 bg-gradient-to-r from-sky-100 via-blue-100 to-indigo-100 opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100 dark:from-sky-900 dark:via-blue-900 dark:to-indigo-900"
+        />
         <button
           onClick={(e) => {
             e.stopPropagation();

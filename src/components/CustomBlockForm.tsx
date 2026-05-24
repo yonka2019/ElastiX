@@ -60,6 +60,16 @@ export function CustomBlockForm({
     if (variant === 'create') reset();
   };
 
+  const format = () => {
+    try {
+      const parsed = JSON.parse(queryText);
+      setQueryText(JSON.stringify(parsed, null, 2));
+      setError(null);
+    } catch {
+      // Invalid JSON — leave as-is so the user can fix it.
+    }
+  };
+
   if (collapsible && !open) {
     return (
       <button
@@ -107,6 +117,13 @@ export function CustomBlockForm({
       )}
 
       <div className="mt-2 flex items-center justify-end gap-2">
+        <button
+          onClick={format}
+          title="Pretty-print the JSON (no-op if invalid)"
+          className="mr-auto rounded-md border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900"
+        >
+          Format
+        </button>
         {variant === 'edit' && onCancel && (
           <button
             onClick={onCancel}
@@ -257,6 +274,36 @@ function HighlightedJsonEditor({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onScroll={syncScroll}
+        onKeyDown={(e) => {
+          if (e.key === 'Tab') {
+            e.preventDefault();
+            const ta = e.currentTarget;
+            const start = ta.selectionStart;
+            const end = ta.selectionEnd;
+            const indent = '  ';
+            if (!e.shiftKey) {
+              const next = value.slice(0, start) + indent + value.slice(end);
+              onChange(next);
+              requestAnimationFrame(() => {
+                ta.selectionStart = ta.selectionEnd = start + indent.length;
+              });
+            } else {
+              // De-indent the current line: strip up to 2 leading spaces.
+              const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+              const lineRest = value.slice(lineStart);
+              const stripped = lineRest.replace(/^ {1,2}/, '');
+              const removed = lineRest.length - stripped.length;
+              if (removed > 0) {
+                const next = value.slice(0, lineStart) + stripped;
+                onChange(next);
+                requestAnimationFrame(() => {
+                  const newCaret = Math.max(lineStart, start - removed);
+                  ta.selectionStart = ta.selectionEnd = newCaret;
+                });
+              }
+            }
+          }
+        }}
         spellCheck={false}
         rows={7}
         className={`${sharedClasses} relative block resize-y border-neutral-300 bg-white text-transparent caret-neutral-900 focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:caret-neutral-100`}
