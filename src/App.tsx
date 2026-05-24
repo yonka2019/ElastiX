@@ -603,12 +603,17 @@ export default function App() {
         </div>
         <div
           aria-hidden
-          className="pointer-events-none fixed bottom-2 right-3 z-40 flex items-center gap-2 font-mono text-[11px] tracking-wider text-neutral-500 dark:text-neutral-400"
+          className="pointer-events-none fixed bottom-2 left-3 z-40 font-mono text-[10px] tracking-wider text-neutral-500 dark:text-neutral-400"
         >
-          <span>by yonka</span>
-          <span className="rounded border border-neutral-300 px-1.5 py-0.5 text-[10px] text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+          <span className="rounded border border-neutral-300 px-1.5 py-0.5 dark:border-neutral-700">
             v{pkg.version}
           </span>
+        </div>
+        <div
+          aria-hidden
+          className="pointer-events-none fixed bottom-2 right-3 z-40 font-mono text-[11px] tracking-wider text-neutral-500 dark:text-neutral-400"
+        >
+          by yonka
         </div>
       </div>
 

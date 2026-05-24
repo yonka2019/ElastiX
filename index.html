@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>ElastiX</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
+    <!--
+      Fonts are intentionally NOT loaded from Google Fonts so this app works
+      on fully air-gapped machines. The CSS falls back to system-ui /
+      ui-monospace. To restore Inter / JetBrains Mono offline, drop the
+      woff2 files into public/fonts/ and add @font-face rules in src/index.css.
+    -->
     <!--
       The templates catalog is inlined here at pod startup by docker-entrypoint.sh.
       It substitutes ${ELASTIX_TEMPLATES_JSON} with the contents of the mounted
