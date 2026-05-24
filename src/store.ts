@@ -110,6 +110,7 @@ type StoreState = {
   setPendingEditId: (id: string | null) => void;
 
   clearBuilder: () => void;
+  replaceBlocks: (blocks: ModeBlock[]) => void;
 
   // Read-only template catalog loaded from /templates.json.
   templatesLoading: boolean;
@@ -622,6 +623,7 @@ export const useStore = create<StoreState>()(
       },
 
       clearBuilder: () => set({ blocks: [] }),
+      replaceBlocks: (blocks) => set({ blocks }),
 
       loadTemplates: async () => {
         set({ templatesLoading: true, templatesError: null });

@@ -531,7 +531,7 @@ export default function App() {
         lastOverIdRef.current = null;
       }}
     >
-      <div className="flex h-screen flex-col bg-neutral-50">
+      <div className="flex h-screen flex-col bg-neutral-50 dark:bg-neutral-950">
         <Header />
         <div className="flex min-h-0 flex-1">
           <ModeBlockPalette
@@ -555,6 +555,9 @@ export default function App() {
             activeDragId={activeDrag?.kind === 'template' ? `tpl:${activeDrag.templateId}` : null}
           />
         </div>
+        <footer className="shrink-0 border-t border-neutral-200 bg-white px-5 py-1 text-center font-mono text-[10px] uppercase tracking-wider text-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-500">
+          by yonka
+        </footer>
       </div>
 
       <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(.2,.7,.2,1)' }}>
@@ -569,54 +572,166 @@ function Header() {
   const templates = useStore((s) => s.templates);
   const blocks = useStore((s) => s.blocks);
   const config = useStore((s) => s.config);
+  const replaceBlocks = useStore((s) => s.replaceBlocks);
+  const { theme, toggle } = useTheme();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [ioError, setIoError] = useState<string | null>(null);
 
   const openInKibana = () => {
     if (!config.kibanaUrl) return;
     const built = buildQuery(templates, blocks) as { query?: Record<string, unknown> };
     const inner = built.query ?? { match_all: {} };
-    // Dev Tools console works without a data view and accepts arbitrary
-    // index/query — copy-paste-runnable in Kibana itself.
     const consoleCmd = `GET ${config.indexPattern}/_search\n${JSON.stringify({ query: inner }, null, 2)}`;
     const url = `${config.kibanaUrl}/app/dev_tools#/console?load_from=data:text/plain,${encodeURIComponent(consoleCmd)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
+  const exportState = () => {
+    const payload = {
+      kind: 'elastix-state' as const,
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      blocks,
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `elastix-state-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const importState = async (file: File) => {
+    setIoError(null);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text) as { kind?: string; blocks?: unknown };
+      if (data.kind !== 'elastix-state') {
+        setIoError('File is not an ElastiX state export.');
+        return;
+      }
+      if (!Array.isArray(data.blocks)) {
+        setIoError('Export is malformed: "blocks" must be an array.');
+        return;
+      }
+      if (blocks.length > 0) {
+        const ok = window.confirm(
+          'Replace the current builder with imported state? Your current blocks will be lost.'
+        );
+        if (!ok) return;
+      }
+      replaceBlocks(data.blocks as ModeBlock[]);
+    } catch (err) {
+      setIoError(`Failed to import: ${(err as Error).message}`);
+    }
+  };
+
   return (
-    <header className="relative flex shrink-0 items-center gap-3 border-b border-neutral-200 bg-white px-5 py-3">
-      <span
-        aria-hidden
-        className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-emerald-500 via-sky-500 to-rose-500"
-      />
-      <ElastixLogo className="h-7 w-7" />
-      <div className="flex items-baseline gap-1.5">
-        <span className="text-base font-semibold text-neutral-900">ElastiX</span>
-        <span className="font-mono text-[10px] uppercase tracking-wider text-neutral-400">
-          by yonka
-        </span>
-      </div>
-      <div className="hidden text-xs text-neutral-500 sm:block">
-        Drag a block from the left, drop templates from the right under each block, or write
-        custom clauses inside.
-      </div>
-      <div className="ml-auto flex items-center gap-2">
-        <button
-          onClick={openInKibana}
-          disabled={!config.kibanaUrl}
-          className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-400 disabled:hover:bg-white"
-          title={
-            config.kibanaUrl
-              ? `Open this query in ${config.kibanaUrl}`
-              : 'Set KIBANA_URL in .env to enable'
-          }
-        >
-          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M14 4h6v6" />
-            <path d="M10 14L20 4" />
-            <path d="M20 14v6H4V4h6" />
-          </svg>
-          Open in Kibana
-        </button>
-      </div>
-    </header>
+    <>
+      <header className="relative flex shrink-0 items-center gap-3 border-b border-neutral-200 bg-white px-5 py-3 dark:border-neutral-800 dark:bg-neutral-900">
+        <span
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-emerald-500 via-sky-500 to-rose-500"
+        />
+        <ElastixLogo className="h-7 w-7" />
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-base font-semibold text-neutral-900 dark:text-neutral-100">ElastiX</span>
+        </div>
+        <div className="hidden text-xs text-neutral-500 sm:block dark:text-neutral-400">
+          Drag a block from the left, drop templates from the right under each block, or write
+          custom clauses inside.
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={toggle}
+            className="inline-flex items-center justify-center rounded-md border border-neutral-200 bg-white p-1.5 text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? (
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={exportState}
+            disabled={blocks.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 shadow-sm transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800 dark:disabled:text-neutral-500"
+            title="Download the current builder state as JSON"
+          >
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 3v12" />
+              <path d="M7 10l5 5 5-5" />
+              <path d="M5 21h14" />
+            </svg>
+            Export
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
+            title="Load builder state from a JSON file"
+          >
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 21V9" />
+              <path d="M7 14l5-5 5 5" />
+              <path d="M5 3h14" />
+            </svg>
+            Import
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void importState(f);
+              e.target.value = '';
+            }}
+          />
+          <button
+            onClick={openInKibana}
+            disabled={!config.kibanaUrl}
+            className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-400 disabled:hover:bg-white dark:border-emerald-800 dark:bg-neutral-900 dark:text-emerald-300 dark:hover:border-emerald-700 dark:hover:bg-emerald-950 dark:disabled:border-neutral-700 dark:disabled:text-neutral-500 dark:disabled:hover:bg-neutral-900"
+            title={
+              config.kibanaUrl
+                ? `Open this query in ${config.kibanaUrl}`
+                : 'Set KIBANA_URL in .env to enable'
+            }
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M14 3h7v7" />
+              <path d="M10 14L21 3" />
+              <path d="M21 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h6" />
+            </svg>
+            Open in Kibana
+          </button>
+        </div>
+      </header>
+      {ioError && (
+        <div className="flex shrink-0 items-center gap-3 border-b border-rose-300 bg-rose-50 px-5 py-1.5 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
+          <span className="font-semibold">Import error:</span>
+          <span className="truncate">{ioError}</span>
+          <button
+            onClick={() => setIoError(null)}
+            className="ml-auto rounded p-0.5 hover:bg-rose-100 dark:hover:bg-rose-900"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+    </>
   );
 }
