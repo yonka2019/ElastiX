@@ -736,20 +736,15 @@ function Header() {
                 : 'Set KIBANA_URL in .env to enable'
             }
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-label="Elastic" role="img">
-              <rect x="3" y="4" width="9" height="3.5" rx="1.5" fill="#FED10A" />
-              <rect x="13" y="4" width="8" height="3.5" rx="1.5" fill="#00BFB3" />
-              <rect x="3" y="10.25" width="13" height="3.5" rx="1.5" fill="#1BA9F5" />
-              <rect x="17" y="10.25" width="4" height="3.5" rx="1.5" fill="#F04E98" />
-              <rect x="3" y="16.5" width="9" height="3.5" rx="1.5" fill="#0A5BB0" />
-              <rect x="13" y="16.5" width="8" height="3.5" rx="1.5" fill="#FA744E" />
+            <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" aria-label="Elastic" role="img">
+              <rect x="3" y="3.5" width="9" height="4" rx="1.5" fill="#FED10A" />
+              <rect x="13" y="3.5" width="8" height="4" rx="1.5" fill="#00BFB3" />
+              <rect x="3" y="10" width="13" height="4" rx="1.5" fill="#1BA9F5" />
+              <rect x="17" y="10" width="4" height="4" rx="1.5" fill="#F04E98" />
+              <rect x="3" y="16.5" width="9" height="4" rx="1.5" fill="#0A5BB0" />
+              <rect x="13" y="16.5" width="8" height="4" rx="1.5" fill="#FA744E" />
             </svg>
             Open in Kibana
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 opacity-60" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M14 3h7v7" />
-              <path d="M10 14L21 3" />
-              <path d="M21 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h6" />
-            </svg>
           </button>
         </div>
       </header>
