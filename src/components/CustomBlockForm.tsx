@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { BoolMode } from '../types';
 import { MODE_META } from '../types';
-import { JsonTree } from './JsonTree';
 
 type Props = {
   variant: 'create' | 'edit';
@@ -97,15 +96,9 @@ export function CustomBlockForm({
         onChange={(e) => setName(e.target.value)}
       />
 
-      <textarea
-        value={queryText}
-        onChange={(e) => setQueryText(e.target.value)}
-        spellCheck={false}
-        rows={7}
-        className="mt-2 w-full resize-y rounded-md border border-neutral-300 bg-white p-2 font-mono text-[12px] leading-relaxed text-neutral-900 focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
-      />
-
-      <LivePreview text={queryText} />
+      <div className="mt-2">
+        <HighlightedJsonEditor value={queryText} onChange={setQueryText} />
+      </div>
 
       {error && (
         <div className="mt-2 rounded-md border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
@@ -141,25 +134,147 @@ export function CustomBlockForm({
   );
 }
 
-function LivePreview({ text }: { text: string }) {
-  const parsed = useMemo(() => {
-    try {
-      const v = JSON.parse(text);
-      if (typeof v === 'object' && v !== null && !Array.isArray(v)) return { ok: true, value: v };
-      return { ok: false, value: null };
-    } catch {
-      return { ok: false, value: null };
-    }
-  }, [text]);
+// JSON syntax highlighting that appears live in the editor.
+// A pre with colored tokens is layered under a transparent textarea
+// (caret-only). Their geometry is identical so the tokens render exactly
+// where the typed characters would. Scroll positions are synced.
+type TokenType = 'string' | 'key' | 'number' | 'boolean' | 'null' | 'punct' | 'whitespace' | 'unknown';
+type Token = { type: TokenType; text: string };
 
-  if (!parsed.ok) return null;
+function tokenizeJson(input: string): Token[] {
+  const tokens: Token[] = [];
+  let i = 0;
+  while (i < input.length) {
+    const c = input[i];
+
+    if (c === '"') {
+      let j = i + 1;
+      while (j < input.length) {
+        if (input[j] === '\\') {
+          j += 2;
+          continue;
+        }
+        if (input[j] === '"') {
+          j++;
+          break;
+        }
+        j++;
+      }
+      const text = input.slice(i, j);
+      let k = j;
+      while (k < input.length && /\s/.test(input[k])) k++;
+      const isKey = input[k] === ':';
+      tokens.push({ type: isKey ? 'key' : 'string', text });
+      i = j;
+      continue;
+    }
+
+    if (c === '-' || (c >= '0' && c <= '9')) {
+      const m = input.slice(i).match(/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+      if (m) {
+        tokens.push({ type: 'number', text: m[0] });
+        i += m[0].length;
+        continue;
+      }
+    }
+
+    if (input.startsWith('true', i)) {
+      tokens.push({ type: 'boolean', text: 'true' });
+      i += 4;
+      continue;
+    }
+    if (input.startsWith('false', i)) {
+      tokens.push({ type: 'boolean', text: 'false' });
+      i += 5;
+      continue;
+    }
+    if (input.startsWith('null', i)) {
+      tokens.push({ type: 'null', text: 'null' });
+      i += 4;
+      continue;
+    }
+
+    if ('{}[],:'.includes(c)) {
+      tokens.push({ type: 'punct', text: c });
+      i++;
+      continue;
+    }
+
+    if (/\s/.test(c)) {
+      let j = i;
+      while (j < input.length && /\s/.test(input[j])) j++;
+      tokens.push({ type: 'whitespace', text: input.slice(i, j) });
+      i = j;
+      continue;
+    }
+
+    tokens.push({ type: 'unknown', text: c });
+    i++;
+  }
+  return tokens;
+}
+
+const TOKEN_CLASS: Record<TokenType, string> = {
+  key: 'text-sky-700 dark:text-sky-300',
+  string: 'text-emerald-700 dark:text-emerald-300',
+  number: 'text-amber-700 dark:text-amber-400',
+  boolean: 'text-rose-700 dark:text-rose-400',
+  null: 'text-rose-700 dark:text-rose-400',
+  punct: 'text-neutral-500 dark:text-neutral-400',
+  whitespace: '',
+  unknown: 'text-rose-600 underline decoration-wavy dark:text-rose-400',
+};
+
+function HighlightedJsonEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const preRef = useRef<HTMLPreElement>(null);
+
+  const syncScroll = () => {
+    if (taRef.current && preRef.current) {
+      preRef.current.scrollTop = taRef.current.scrollTop;
+      preRef.current.scrollLeft = taRef.current.scrollLeft;
+    }
+  };
+
+  const tokens = tokenizeJson(value);
+
+  // Shared text geometry: same font, padding, leading, wrap. The pre is
+  // absolutely positioned over the textarea; the textarea has transparent
+  // text but a visible caret.
+  const sharedClasses =
+    'block w-full rounded-md border font-mono text-[12px] leading-relaxed p-2 whitespace-pre-wrap break-words';
 
   return (
-    <div className="mt-2 max-h-44 overflow-auto rounded-md border border-neutral-200 bg-neutral-50 p-2 dark:border-neutral-700 dark:bg-neutral-950">
-      <div className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-        preview
-      </div>
-      <JsonTree value={parsed.value} />
+    <div className="relative">
+      <pre
+        ref={preRef}
+        aria-hidden
+        className={`${sharedClasses} pointer-events-none absolute inset-0 overflow-hidden border-transparent bg-transparent text-neutral-900 dark:text-neutral-100`}
+      >
+        {tokens.map((tok, i) => (
+          <span key={i} className={TOKEN_CLASS[tok.type]}>
+            {tok.text}
+          </span>
+        ))}
+        {/* Trailing newline marker so the pre's height matches the textarea
+            when the user ends with a blank line. */}
+        {'\n'}
+      </pre>
+      <textarea
+        ref={taRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onScroll={syncScroll}
+        spellCheck={false}
+        rows={7}
+        className={`${sharedClasses} relative resize-y border-neutral-300 bg-white text-transparent caret-neutral-900 focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:caret-neutral-100`}
+      />
     </div>
   );
 }
