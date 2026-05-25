@@ -4,6 +4,10 @@ A visual builder for Elasticsearch bool queries. Drag-and-drop must / should / m
 
 Designed to run on fully offline machines — no CDN dependencies at runtime.
 
+![ElastiX — visual Elasticsearch bool query builder](docs/screenshot.png)
+
+> **Note:** drop a PNG at `docs/screenshot.png` to populate the image above. A 1600–2000px wide capture of the full app (light or dark mode, with a couple of blocks built out) reads best on the GitHub repo page.
+
 ## Stack
 
 - **React 18** + **TypeScript 5** + **Vite 5**
