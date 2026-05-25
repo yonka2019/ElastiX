@@ -611,7 +611,7 @@ export default function App() {
             activeDragMode={activeDrag?.kind === 'palette-block' ? activeDrag.mode : null}
             activeDragLeaf={activeDrag?.kind === 'palette-leaf' ? activeDrag.leafId : null}
             activeDragNestedBlock={activeDrag?.kind === 'palette-block-nested'}
-            nestedDisabled={false}
+            nestedDisabled={!blocks.some((b) => !b.nested)}
           />
           <div className="flex min-w-0 flex-1 flex-col">
             <QueryOutput />
