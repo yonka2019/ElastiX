@@ -497,6 +497,20 @@ export default function App() {
       }
       if (overData.kind === 'block-zone' || overData.kind === 'block') {
         const containing = blockContaining(blocks, activeData.instanceId);
+        if (containing && containing.id === overData.blockId) {
+          // Dropped on the SAME parent. For a nested-bool item this is the
+          // user trying to drag it out — promote it to top-level right
+          // after the (former) parent. For a leaf, no-op.
+          const item = getItem(blocks, activeData.instanceId);
+          if (item?.source.kind === 'bool') {
+            const idx = blocks.findIndex((b) => b.id === containing.id);
+            promoteItemToTopLevel(
+              activeData.instanceId,
+              idx >= 0 ? idx + 1 : undefined
+            );
+          }
+          return;
+        }
         if (!containing || containing.id !== overData.blockId) {
           moveItemToBlock(activeData.instanceId, overData.blockId);
         }
