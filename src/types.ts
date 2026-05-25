@@ -71,6 +71,20 @@ export const MODE_META: Record<
   },
 };
 
+// Nested blocks have their own visual identity (orange) that does NOT depend
+// on the inner bool mode. The inner mode still drives semantics — how the
+// items inside combine — but it does not tint the block's outer chrome.
+// Without this a nested+must block would look green, a nested+should one
+// would look blue, etc., which made the nested marker ambiguous.
+export const NESTED_META = {
+  softBg: 'bg-orange-50/60 dark:bg-orange-950/40',
+  softBgStrong: 'bg-orange-100/60 dark:bg-orange-900/40',
+  softBorder: 'border-orange-200 dark:border-orange-800',
+  softRing: 'ring-orange-300 dark:ring-orange-700',
+  accentText: 'text-orange-700 dark:text-orange-300',
+  blockShadow: 'shadow-orange-200/40 dark:shadow-orange-900/30',
+} as const;
+
 export type Template = {
   id: string;
   name: string;

@@ -18,8 +18,19 @@ export function WildcardForm({ sectionMode, initialTitle, initialField, initialV
   const [value, setValue] = useState(initialValue);
   const canSave = field.trim().length > 0 && value.trim().length > 0;
 
+  const submit = () => {
+    if (!canSave) return;
+    onSubmit({ title: title.trim() || undefined, field: field.trim(), value: value.trim() });
+  };
+
   return (
-    <div className={`rounded-md border-2 border-dashed ${meta.softBorder} ${meta.softBg} p-3`}>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+      className={`rounded-md border-2 border-dashed ${meta.softBorder} ${meta.softBg} p-3`}
+    >
       <div className="mb-2 flex items-center gap-2">
         <span
           className={`inline-flex items-center gap-1 rounded border bg-white px-1.5 py-0.5 font-mono text-[10px] dark:bg-neutral-900 ${meta.accentText} ${meta.softBorder}`}
@@ -70,19 +81,20 @@ export function WildcardForm({ sectionMode, initialTitle, initialField, initialV
 
       <div className="mt-2 flex items-center justify-end gap-2">
         <button
+          type="button"
           onClick={onCancel}
           className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
         >
           Cancel
         </button>
         <button
-          onClick={() => canSave && onSubmit({ title: title.trim() || undefined, field: field.trim(), value: value.trim() })}
+          type="submit"
           disabled={!canSave}
           className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-300 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200 dark:disabled:bg-neutral-700 dark:disabled:text-neutral-500"
         >
           Save wildcard
         </button>
       </div>
-    </div>
+    </form>
   );
 }

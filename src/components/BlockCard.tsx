@@ -3,7 +3,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { ModeBlock, Template } from '../types';
-import { MODE_META } from '../types';
+import { MODE_META, NESTED_META } from '../types';
 import { useStore, buildBlockQuery } from '../store';
 import { BuilderRow } from './BuilderRow';
 import { ModeIcon } from './icons';
@@ -46,6 +46,11 @@ function BlockCardImpl({
   const headerGradient = isNested
     ? 'bg-gradient-to-r from-orange-600 to-orange-500'
     : meta.headerSolid;
+  // Outer chrome (shadow, body bg, ring, empty-state border, drop hints)
+  // follows the nested orange theme when this block is a nested wrap — it
+  // must NOT inherit the inner bool mode color. `meta` still drives the
+  // mode badge in the header and the inner-bool semantics.
+  const chrome = isNested ? NESTED_META : meta;
 
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(block.name ?? '');
@@ -118,7 +123,7 @@ function BlockCardImpl({
       style={style}
       className={[
         'relative overflow-hidden rounded-xl bg-white shadow-md transition-colors dark:bg-neutral-900',
-        meta.blockShadow,
+        chrome.blockShadow,
         'border-2',
         targetedFromHeader
           ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800'
@@ -277,12 +282,12 @@ function BlockCardImpl({
         hidden={!bodyVisible}
         className={[
           'relative transition-colors',
-          isOver ? meta.softBgStrong : meta.softBg,
+          isOver ? chrome.softBgStrong : chrome.softBg,
         ].join(' ')}
       >
         {isOver && (
           <span
-            className={`pointer-events-none absolute inset-0 ring-2 ring-inset ${meta.softRing}`}
+            className={`pointer-events-none absolute inset-0 ring-2 ring-inset ${chrome.softRing}`}
             aria-hidden
           />
         )}
@@ -292,9 +297,9 @@ function BlockCardImpl({
               className={[
                 'flex items-center justify-center rounded-md border-2 border-dashed bg-white/60 px-3 py-7 text-center text-xs transition-all dark:bg-neutral-900/60',
                 isOver
-                  ? `${meta.softBorder} ${meta.accentText} font-semibold`
+                  ? `${chrome.softBorder} ${chrome.accentText} font-semibold`
                   : showsHint
-                  ? `${meta.softBorder} ${meta.accentText}`
+                  ? `${chrome.softBorder} ${chrome.accentText}`
                   : 'border-neutral-200 text-neutral-400 dark:border-neutral-700 dark:text-neutral-500',
               ].join(' ')}
             >
@@ -344,8 +349,8 @@ function BlockCardImpl({
                 <div
                   className={[
                     'mt-2 rounded-md border border-dashed bg-white/60 px-3 py-1.5 text-center text-[11px] dark:bg-neutral-900/60',
-                    meta.softBorder,
-                    meta.accentText,
+                    chrome.softBorder,
+                    chrome.accentText,
                     isOver ? 'invisible' : '',
                   ].join(' ')}
                 >

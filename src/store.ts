@@ -95,6 +95,7 @@ type StoreState = {
   ) => string | null;
   updateWildcardItem: (instanceId: string, patch: { title?: string; field?: string; value?: string }) => void;
   addNestedBlockTopLevel: (atIndex?: number) => string;
+  addNestedBlockInside: (parentBlockId: string, atIndex?: number) => string | null;
   setBlockPath: (blockId: string, path: string) => void;
   updateCustomItem: (
     instanceId: string,
@@ -442,6 +443,26 @@ export const useStore = create<StoreState>()(
           ),
         }));
         return id;
+      },
+
+      addNestedBlockInside: (parentBlockId, atIndex) => {
+        const id = `blk-${uuidv4().slice(0, 8)}`;
+        const instanceId = uuidv4();
+        let added = false;
+        set((s) => ({
+          blocks: updateBlockById(s.blocks, parentBlockId, (b) => {
+            added = true;
+            const item: BuilderItem = {
+              instanceId,
+              source: {
+                kind: 'bool',
+                block: { id, mode: 'must', items: [], nested: { path: '' } },
+              },
+            };
+            return { ...b, items: insertAt(b.items, item, atIndex) };
+          }),
+        }));
+        return added ? id : null;
       },
 
       setBlockPath: (blockId, path) => {

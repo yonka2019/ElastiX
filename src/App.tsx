@@ -92,6 +92,7 @@ export default function App() {
   const addExistsToBlock = useStore((s) => s.addExistsToBlock);
   const addWildcardToBlock = useStore((s) => s.addWildcardToBlock);
   const addNestedBlockTopLevel = useStore((s) => s.addNestedBlockTopLevel);
+  const addNestedBlockInside = useStore((s) => s.addNestedBlockInside);
   const setPendingEditId = useStore((s) => s.setPendingEditId);
   const moveItemToBlock = useStore((s) => s.moveItemToBlock);
   const reorderItemInBlock = useStore((s) => s.reorderItemInBlock);
@@ -153,14 +154,32 @@ export default function App() {
 
     const activeKind = (args.active.data.current as { kind?: string } | undefined)?.kind;
 
-    // palette-block-nested has different semantics from other "drop into"
-    // drags: it never nests INSIDE another block, it always becomes a
-    // top-level sibling. So we only care about 'block' (insert below) or
-    // 'builder-canvas' (append) targets — skip block-zone/item entirely.
+    // palette-block-nested behaves like a generic "drop INTO a block" drag:
+    // hovering over a block-zone or an item nests the new nested-block INSIDE
+    // that block; hovering over a block header inserts it as a sibling just
+    // below; hovering over the canvas appends at top level.
     if (activeKind === 'palette-block-nested') {
-      const hits = pointerWithin(args);
       const kindOf = (h: (typeof hits)[number]): string | undefined =>
         (h.data?.droppableContainer.data.current as { kind?: string } | undefined)?.kind;
+      const areaOf = (h: (typeof hits)[number]): number => {
+        const r = h.data?.droppableContainer.rect.current;
+        return r ? r.width * r.height : Number.POSITIVE_INFINITY;
+      };
+      let best: (typeof hits)[number] | null = null;
+      let bestArea = Number.POSITIVE_INFINITY;
+      for (const h of hits) {
+        const k = kindOf(h);
+        if (k !== 'item' && k !== 'block-zone') continue;
+        const a = areaOf(h);
+        if (a < bestArea) {
+          best = h;
+          bestArea = a;
+        }
+      }
+      if (best) {
+        lastOverIdRef.current = best.id;
+        return [best];
+      }
       const block = hits.find((h) => kindOf(h) === 'block');
       if (block) {
         lastOverIdRef.current = block.id;
@@ -175,10 +194,20 @@ export default function App() {
       return rectIntersection(args);
     }
 
+    // Item and existing-block drags belong here too. For items: dropping on
+    // another block's header would otherwise let the canvas win the hit
+    // ordering and the handler would promote-to-top-level instead of re-
+    // parenting. For existing top-level blocks dropped on another block's
+    // BODY, the wrapping block sortable (kind: 'block') would otherwise
+    // tie with the body's block-zone (kind: 'block-zone'); without
+    // preferring the smaller block-zone, the handler reorders the top-
+    // level blocks instead of nesting one inside the other.
     const dropIntoBlock =
       activeKind === 'palette-block' ||
       activeKind === 'palette-leaf' ||
-      activeKind === 'template';
+      activeKind === 'template' ||
+      activeKind === 'item' ||
+      activeKind === 'block';
 
     if (dropIntoBlock) {
       const kindOf = (h: (typeof hits)[number]): string | undefined =>
@@ -306,24 +335,35 @@ export default function App() {
       | undefined;
     if (!activeData || !overData) return;
 
-    // Palette nested block → create as a top-level block. When the user
-    // releases over an existing top-level block (its header or body), insert
-    // the new nested block just BELOW it so the resulting order matches
-    // where the user pointed. Otherwise append at the end.
+    // Palette nested block:
+    //   - Drop on a block's BODY (block-zone) → nest INSIDE that block.
+    //   - Drop on an item — if that item is itself a bool wrapper, nest
+    //     INSIDE its inner block; otherwise nest into the containing block
+    //     at the item's index.
+    //   - Drop on a block HEADER → insert as a top-level sibling just below.
+    //   - Drop on canvas → append at top level.
     if (activeData.kind === 'palette-block-nested') {
+      if (overData.kind === 'block-zone') {
+        addNestedBlockInside(overData.blockId);
+        return;
+      }
+      if (overData.kind === 'item') {
+        const item = getItem(blocks, overData.instanceId);
+        if (item?.source.kind === 'bool') {
+          addNestedBlockInside(item.source.block.id);
+          return;
+        }
+        const containing = blockContaining(blocks, overData.instanceId);
+        if (containing) {
+          const loc = locateItemPublic(blocks, overData.instanceId);
+          addNestedBlockInside(containing.id, loc?.index);
+        }
+        return;
+      }
       let atIndex: number | undefined;
       if (overData.kind === 'block') {
         const idx = blocks.findIndex((b) => b.id === overData.blockId);
         if (idx >= 0) atIndex = idx + 1;
-      } else if (overData.kind === 'block-zone') {
-        const idx = blocks.findIndex((b) => b.id === overData.blockId);
-        if (idx >= 0) atIndex = idx + 1;
-      } else if (overData.kind === 'item') {
-        const containing = blockContaining(blocks, overData.instanceId);
-        if (containing) {
-          const idx = blocks.findIndex((b) => b.id === containing.id);
-          if (idx >= 0) atIndex = idx + 1;
-        }
       }
       addNestedBlockTopLevel(atIndex);
       return;
