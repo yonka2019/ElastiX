@@ -308,7 +308,7 @@ function PaletteNestedCard({ isDragging, disabled }: { isDragging: boolean; disa
       {...(disabled ? {} : listeners)}
       className={`group relative select-none overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm transition-all dark:border-neutral-700 dark:bg-neutral-900 ${
         disabled
-          ? 'cursor-not-allowed opacity-40 grayscale'
+          ? 'cursor-not-allowed opacity-70 saturate-50'
           : 'cursor-grab hover:-translate-y-0.5 hover:shadow active:cursor-grabbing'
       } ${isDragging ? 'opacity-30' : ''}`}
       title={
