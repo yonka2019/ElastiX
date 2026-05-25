@@ -283,11 +283,12 @@ export default function App() {
       | undefined;
     if (!activeData || !overData) return;
 
-    // Palette nested block → only meaningful at top level for now.
+    // Palette nested block → always create as a top-level block, no matter
+    // where in the builder the user releases the drag. (Dropping onto another
+    // block's body could nest the nested-block, but that adds a lot of UI
+    // surface for a less-common case; defer.)
     if (activeData.kind === 'palette-block-nested') {
-      if (overData.kind === 'builder-canvas') {
-        addNestedBlockTopLevel();
-      }
+      addNestedBlockTopLevel();
       return;
     }
 
