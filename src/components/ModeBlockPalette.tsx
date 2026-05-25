@@ -263,6 +263,10 @@ type Props = {
   activeDragMode: BoolMode | null;
   activeDragLeaf: LeafPaletteId | null;
   activeDragNestedBlock: boolean;
+  // Nested blocks are only meaningful inside a bool context, so the palette
+  // card is locked until the user has at least one must/should/must_not
+  // block on the canvas.
+  nestedDisabled: boolean;
 };
 
 function PaletteCard({ mode, isDragging }: { mode: BoolMode; isDragging: boolean }) {
@@ -291,20 +295,27 @@ function PaletteCard({ mode, isDragging }: { mode: BoolMode; isDragging: boolean
   );
 }
 
-function PaletteNestedCard({ isDragging }: { isDragging: boolean }) {
+function PaletteNestedCard({ isDragging, disabled }: { isDragging: boolean; disabled: boolean }) {
   const { setNodeRef, attributes, listeners } = useDraggable({
     id: 'palette-block:nested',
     data: { kind: 'palette-block-nested' },
+    disabled,
   });
   return (
     <div
       ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      className={`group relative cursor-grab select-none overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow active:cursor-grabbing dark:border-neutral-700 dark:bg-neutral-900 ${
-        isDragging ? 'opacity-30' : ''
-      }`}
-      title="Drag to add a nested query block (path + inner items)"
+      {...(disabled ? {} : attributes)}
+      {...(disabled ? {} : listeners)}
+      className={`group relative select-none overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm transition-all dark:border-neutral-700 dark:bg-neutral-900 ${
+        disabled
+          ? 'cursor-not-allowed opacity-40 grayscale'
+          : 'cursor-grab hover:-translate-y-0.5 hover:shadow active:cursor-grabbing'
+      } ${isDragging ? 'opacity-30' : ''}`}
+      title={
+        disabled
+          ? 'Add a must / should / must_not block first — nested only makes sense inside one'
+          : 'Drag to add a nested query block (path + inner items)'
+      }
     >
       <div className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-500 px-3 py-2 text-white">
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur">
@@ -354,7 +365,12 @@ function LeafCard({ spec, isDragging }: { spec: LeafSpec; isDragging: boolean })
   );
 }
 
-export function ModeBlockPalette({ activeDragMode, activeDragLeaf, activeDragNestedBlock }: Props) {
+export function ModeBlockPalette({
+  activeDragMode,
+  activeDragLeaf,
+  activeDragNestedBlock,
+  nestedDisabled,
+}: Props) {
   return (
     <aside className="flex h-full w-56 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950">
       <div className="border-b border-neutral-200 bg-white px-3 py-3 dark:border-neutral-800 dark:bg-neutral-900">
@@ -365,7 +381,7 @@ export function ModeBlockPalette({ activeDragMode, activeDragLeaf, activeDragNes
         {MODE_ORDER.map((m) => (
           <PaletteCard key={m} mode={m} isDragging={activeDragMode === m} />
         ))}
-        <PaletteNestedCard isDragging={activeDragNestedBlock} />
+        <PaletteNestedCard isDragging={activeDragNestedBlock} disabled={nestedDisabled} />
 
         <div className="mt-3 flex items-center gap-2 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
           <span>Clauses</span>
