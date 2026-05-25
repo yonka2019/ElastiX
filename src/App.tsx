@@ -515,6 +515,21 @@ export default function App() {
         </div>
       );
     }
+    if (activeDrag.kind === 'palette-block-nested') {
+      return (
+        <div className="w-52 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl ring-2 ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:ring-blue-800">
+          <div className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-500 px-3 py-2 text-white">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+              <svg viewBox="0 0 24 24" className="h-4 w-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <rect x="8" y="8" width="11" height="11" rx="1.5" />
+              </svg>
+            </span>
+            <span className="font-mono text-[13px] font-bold tracking-wide">nested</span>
+          </div>
+        </div>
+      );
+    }
     if (activeDrag.kind === 'item') {
       const item = getItem(blocks, activeDrag.instanceId);
       if (!item) return null;

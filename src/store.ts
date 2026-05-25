@@ -776,7 +776,7 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: 'eck-template-builder-v2',
-      version: 5,
+      version: 6,
       // Only blocks survive a reload; templates are loaded from MongoDB on
       // mount via loadTemplates().
       partialize: (state) => ({ blocks: state.blocks }),
@@ -840,6 +840,31 @@ export const useStore = create<StoreState>()(
         if (version < 5) {
           delete state.templates;
         }
+
+        // v5 → v6: an earlier iteration of the app had a leaf-style
+        // 'nested' source kind that no longer exists. Strip any such
+        // leftover items so the new buildQuery doesn't choke on them.
+        if (version < 6 && Array.isArray(state.blocks)) {
+          type AnyItem = { source?: { kind?: string; block?: unknown } };
+          const stripNested = (blocks: ModeBlock[]): ModeBlock[] =>
+            blocks.map((b) => ({
+              ...b,
+              items: b.items
+                .filter((it) => (it as AnyItem).source?.kind !== 'nested')
+                .map((it) => {
+                  if ((it as AnyItem).source?.kind === 'bool') {
+                    const inner = (it as { source: { kind: 'bool'; block: ModeBlock } }).source.block;
+                    return {
+                      ...it,
+                      source: { kind: 'bool' as const, block: stripNested([inner])[0] },
+                    };
+                  }
+                  return it;
+                }),
+            }));
+          state.blocks = stripNested(state.blocks);
+        }
+
         return state as StoreState;
       },
     }
@@ -905,6 +930,10 @@ function resolveItemWithMap(
     if (!item.source.field.trim()) return undefined;
     return { exists: { field: item.source.field } };
   }
+  // Defensive: any unknown kind (e.g. a leftover from a previous build that
+  // had a kind that no longer exists in this version) is treated as a
+  // skipped clause rather than crashing.
+  if (item.source.kind !== 'bool') return undefined;
   const inner = makeBoolInnerWithMap(byId, [item.source.block]);
   if (Object.keys(inner).length === 0) return undefined;
   return { bool: inner };
