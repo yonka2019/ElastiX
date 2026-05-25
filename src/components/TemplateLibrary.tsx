@@ -32,7 +32,7 @@ function LibraryItem({
       {...(disabled ? {} : listeners)}
       className={
         disabled
-          ? 'cursor-not-allowed opacity-70 saturate-50'
+          ? 'cursor-not-allowed opacity-50 grayscale'
           : 'cursor-grab active:cursor-grabbing'
       }
       title={disabled ? 'Add a block first — templates drop into blocks' : undefined}

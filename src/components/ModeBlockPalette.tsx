@@ -311,7 +311,7 @@ function PaletteNestedCard({ isDragging, disabled }: { isDragging: boolean; disa
       {...(disabled ? {} : listeners)}
       className={`group relative select-none overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm transition-all dark:border-neutral-700 dark:bg-neutral-900 ${
         disabled
-          ? 'cursor-not-allowed opacity-70 saturate-50'
+          ? 'cursor-not-allowed opacity-50 grayscale'
           : 'cursor-grab hover:-translate-y-0.5 hover:shadow active:cursor-grabbing'
       } ${isDragging ? 'opacity-30' : ''}`}
       title={
@@ -360,7 +360,7 @@ function LeafCard({
       className={[
         'group relative flex select-none items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-sm transition-all ring-2 ring-transparent dark:border-neutral-700 dark:bg-neutral-900',
         disabled
-          ? 'cursor-not-allowed opacity-70 saturate-50'
+          ? 'cursor-not-allowed opacity-50 grayscale'
           : `cursor-grab hover:-translate-y-0.5 hover:shadow active:cursor-grabbing ${spec.ring}`,
         isDragging ? 'opacity-30' : '',
       ].join(' ')}
