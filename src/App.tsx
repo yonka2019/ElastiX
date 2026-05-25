@@ -152,14 +152,33 @@ export default function App() {
     }
 
     const activeKind = (args.active.data.current as { kind?: string } | undefined)?.kind;
+
+    // palette-block-nested has different semantics from other "drop into"
+    // drags: it never nests INSIDE another block, it always becomes a
+    // top-level sibling. So we only care about 'block' (insert below) or
+    // 'builder-canvas' (append) targets — skip block-zone/item entirely.
+    if (activeKind === 'palette-block-nested') {
+      const hits = pointerWithin(args);
+      const kindOf = (h: (typeof hits)[number]): string | undefined =>
+        (h.data?.droppableContainer.data.current as { kind?: string } | undefined)?.kind;
+      const block = hits.find((h) => kindOf(h) === 'block');
+      if (block) {
+        lastOverIdRef.current = block.id;
+        return [block];
+      }
+      const canvas = hits.find((h) => kindOf(h) === 'builder-canvas');
+      if (canvas) {
+        lastOverIdRef.current = canvas.id;
+        return [canvas];
+      }
+      lastOverIdRef.current = null;
+      return rectIntersection(args);
+    }
+
     const dropIntoBlock =
       activeKind === 'palette-block' ||
       activeKind === 'palette-leaf' ||
-      activeKind === 'template' ||
-      // Picking block-zone / block as the target lets the palette-nested
-      // drop know which existing top-level block it landed "next to", so
-      // the new nested block is inserted right below it.
-      activeKind === 'palette-block-nested';
+      activeKind === 'template';
 
     if (dropIntoBlock) {
       const kindOf = (h: (typeof hits)[number]): string | undefined =>
@@ -602,13 +621,25 @@ export default function App() {
       const block = blocks.find((b) => b.id === activeDrag.blockId);
       if (!block) return null;
       const meta = MODE_META[block.mode];
+      const isNestedBlock = block.nested !== undefined;
+      const headerGradient = isNestedBlock
+        ? 'bg-gradient-to-r from-orange-600 to-orange-500'
+        : meta.headerSolid;
+      const label = block.name?.trim() || (isNestedBlock ? 'nested' : meta.label);
       return (
         <div className={`w-72 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl ring-2 ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:ring-blue-800`}>
-          <div className={`${meta.headerSolid} flex items-center gap-2 px-3 py-2 text-white`}>
+          <div className={`${headerGradient} flex items-center gap-2 px-3 py-2 text-white`}>
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur">
-              <ModeIcon mode={block.mode} className="h-4 w-4 text-white" />
+              {isNestedBlock ? (
+                <svg viewBox="0 0 24 24" className="h-4 w-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <rect x="8" y="8" width="11" height="11" rx="1.5" />
+                </svg>
+              ) : (
+                <ModeIcon mode={block.mode} className="h-4 w-4 text-white" />
+              )}
             </span>
-            <span className="font-mono text-[13px] font-bold tracking-wide">{meta.label}</span>
+            <span className="font-mono text-[13px] font-bold tracking-wide">{label}</span>
             <span className="ml-auto font-mono text-[11px] text-white/80">
               {block.items.length} item{block.items.length === 1 ? '' : 's'}
             </span>
