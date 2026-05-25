@@ -582,19 +582,29 @@ export default function App() {
       if (!item) return null;
       const sectionMeta = MODE_META[activeDrag.sectionMode];
       if (item.source.kind === 'bool') {
-        const blockMeta = MODE_META[item.source.block.mode];
+        const inner = item.source.block;
+        const blockMeta = MODE_META[inner.mode];
+        const isNestedBlock = inner.nested !== undefined;
+        const headerGradient = isNestedBlock
+          ? 'bg-gradient-to-r from-orange-600 to-orange-500'
+          : blockMeta.headerSolid;
+        const label = inner.name?.trim() || (isNestedBlock ? 'nested' : blockMeta.label);
         return (
           <div className="w-[420px] overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl ring-2 ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:ring-blue-800">
-            <div className={`${blockMeta.headerSolid} flex items-center gap-2 px-3 py-2 text-white`}>
+            <div className={`${headerGradient} flex items-center gap-2 px-3 py-2 text-white`}>
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur">
-                <ModeIcon mode={item.source.block.mode} className="h-4 w-4 text-white" />
+                {isNestedBlock ? (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <rect x="8" y="8" width="11" height="11" rx="1.5" />
+                  </svg>
+                ) : (
+                  <ModeIcon mode={inner.mode} className="h-4 w-4 text-white" />
+                )}
               </span>
-              <span className="font-mono text-[13px] font-bold tracking-wide">
-                {blockMeta.label}
-              </span>
+              <span className="font-mono text-[13px] font-bold tracking-wide">{label}</span>
               <span className="ml-auto font-mono text-[11px] text-white/80">
-                {item.source.block.items.length} item
-                {item.source.block.items.length === 1 ? '' : 's'}
+                {inner.items.length} item{inner.items.length === 1 ? '' : 's'}
               </span>
             </div>
           </div>
