@@ -6,21 +6,43 @@ import type { Template } from '../types';
 
 type Props = {
   activeDragId: string | null;
+  // Templates can only be dropped into blocks — when there are no blocks,
+  // dragging does nothing useful, so the cards visually mute.
+  dragDisabled: boolean;
 };
 
-function LibraryItem({ template, isDragging }: { template: Template; isDragging: boolean }) {
+function LibraryItem({
+  template,
+  isDragging,
+  disabled,
+}: {
+  template: Template;
+  isDragging: boolean;
+  disabled: boolean;
+}) {
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: `tpl:${template.id}`,
     data: { kind: 'template', templateId: template.id },
+    disabled,
   });
   return (
-    <div ref={setNodeRef} {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+    <div
+      ref={setNodeRef}
+      {...(disabled ? {} : attributes)}
+      {...(disabled ? {} : listeners)}
+      className={
+        disabled
+          ? 'cursor-not-allowed opacity-70 saturate-50'
+          : 'cursor-grab active:cursor-grabbing'
+      }
+      title={disabled ? 'Add a block first — templates drop into blocks' : undefined}
+    >
       <TemplateCard template={template} variant="library" dragging={isDragging} />
     </div>
   );
 }
 
-export function TemplateLibrary({ activeDragId }: Props) {
+export function TemplateLibrary({ activeDragId, dragDisabled }: Props) {
   const templates = useStore((s) => s.templates);
   const loadTemplates = useStore((s) => s.loadTemplates);
   const templatesLoading = useStore((s) => s.templatesLoading);
@@ -96,6 +118,7 @@ export function TemplateLibrary({ activeDragId }: Props) {
                 key={t.id}
                 template={t}
                 isDragging={activeDragId === `tpl:${t.id}`}
+                disabled={dragDisabled}
               />
             ))}
           </div>

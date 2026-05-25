@@ -155,7 +155,11 @@ export default function App() {
     const dropIntoBlock =
       activeKind === 'palette-block' ||
       activeKind === 'palette-leaf' ||
-      activeKind === 'template';
+      activeKind === 'template' ||
+      // Picking block-zone / block as the target lets the palette-nested
+      // drop know which existing top-level block it landed "next to", so
+      // the new nested block is inserted right below it.
+      activeKind === 'palette-block-nested';
 
     if (dropIntoBlock) {
       const kindOf = (h: (typeof hits)[number]): string | undefined =>
@@ -283,25 +287,48 @@ export default function App() {
       | undefined;
     if (!activeData || !overData) return;
 
-    // Palette nested block → always create as a top-level block, no matter
-    // where in the builder the user releases the drag. (Dropping onto another
-    // block's body could nest the nested-block, but that adds a lot of UI
-    // surface for a less-common case; defer.)
+    // Palette nested block → create as a top-level block. When the user
+    // releases over an existing top-level block (its header or body), insert
+    // the new nested block just BELOW it so the resulting order matches
+    // where the user pointed. Otherwise append at the end.
     if (activeData.kind === 'palette-block-nested') {
-      addNestedBlockTopLevel();
+      let atIndex: number | undefined;
+      if (overData.kind === 'block') {
+        const idx = blocks.findIndex((b) => b.id === overData.blockId);
+        if (idx >= 0) atIndex = idx + 1;
+      } else if (overData.kind === 'block-zone') {
+        const idx = blocks.findIndex((b) => b.id === overData.blockId);
+        if (idx >= 0) atIndex = idx + 1;
+      } else if (overData.kind === 'item') {
+        const containing = blockContaining(blocks, overData.instanceId);
+        if (containing) {
+          const idx = blocks.findIndex((b) => b.id === containing.id);
+          if (idx >= 0) atIndex = idx + 1;
+        }
+      }
+      addNestedBlockTopLevel(atIndex);
       return;
     }
 
     // 1) Palette mode-block → builder.
     //    - Onto canvas: append as a new top-level block.
-    //    - Onto a block-zone or block: nest inside that block.
-    //    - Onto an item: nest inside the item's containing block, at the item's position.
+    //    - Onto a block's HEADER (over kind === 'block'): insert as a new
+    //      top-level block just below the targeted block. This is what the
+    //      user expects when they release the drag pointing at an existing
+    //      block — "put a new one here".
+    //    - Onto a block's BODY (block-zone) or an item inside it: nest
+    //      INSIDE that block at the appropriate position.
     if (activeData.kind === 'palette-block') {
       if (overData.kind === 'builder-canvas') {
         addBlock(activeData.mode);
         return;
       }
-      if (overData.kind === 'block-zone' || overData.kind === 'block') {
+      if (overData.kind === 'block') {
+        const idx = blocks.findIndex((b) => b.id === overData.blockId);
+        addBlock(activeData.mode, idx >= 0 ? idx + 1 : undefined);
+        return;
+      }
+      if (overData.kind === 'block-zone') {
         addNestedBlock(overData.blockId, activeData.mode);
         return;
       }
@@ -612,6 +639,7 @@ export default function App() {
             activeDragLeaf={activeDrag?.kind === 'palette-leaf' ? activeDrag.leafId : null}
             activeDragNestedBlock={activeDrag?.kind === 'palette-block-nested'}
             nestedDisabled={!blocks.some((b) => !b.nested)}
+            leavesDisabled={blocks.length === 0}
           />
           <div className="flex min-w-0 flex-1 flex-col">
             <QueryOutput />
@@ -628,6 +656,7 @@ export default function App() {
           </div>
           <TemplateLibrary
             activeDragId={activeDrag?.kind === 'template' ? `tpl:${activeDrag.templateId}` : null}
+            dragDisabled={blocks.length === 0}
           />
         </div>
         <div
@@ -642,7 +671,7 @@ export default function App() {
           aria-hidden
           className="pointer-events-none fixed bottom-2 right-3 z-40 font-mono text-[11px] tracking-wider text-neutral-500 dark:text-neutral-400"
         >
-          by yonka
+          yonka
         </div>
       </div>
 
@@ -685,7 +714,7 @@ function Header() {
     const a = document.createElement('a');
     const date = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = `elastix-state-${date}.json`;
+    a.download = `elastix-state-${date}.elastix`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -774,7 +803,7 @@ function Header() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".json,application/json"
+            accept=".elastix,.json,application/json"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];

@@ -50,7 +50,10 @@ function BlockCardImpl({
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(block.name ?? '');
   const [collapsed, setCollapsed] = useState(false);
-  const displayName = block.name?.trim() || meta.label;
+  // Nested blocks default to label "nested" instead of the underlying bool
+  // mode so the user immediately sees what they dropped.
+  const defaultLabel = block.nested ? 'nested' : meta.label;
+  const displayName = block.name?.trim() || defaultLabel;
 
   const commitName = () => {
     renameBlock(block.id, draftName);
@@ -224,12 +227,14 @@ function BlockCardImpl({
             openPreview(displayName, buildBlockQuery(templates, block));
           }}
           className="rounded p-1 text-white/70 hover:bg-white/20 hover:text-white"
-          title="Preview JSON for this block"
-          aria-label="Preview block JSON"
+          title="Show full JSON for this block"
+          aria-label="Show full block JSON"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
-            <circle cx="12" cy="12" r="3" />
+            <polyline points="15 3 21 3 21 9" />
+            <polyline points="9 21 3 21 3 15" />
+            <line x1="21" y1="3" x2="14" y2="10" />
+            <line x1="3" y1="21" x2="10" y2="14" />
           </svg>
         </button>
         <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 font-mono text-[11px] font-semibold backdrop-blur">

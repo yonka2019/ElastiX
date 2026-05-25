@@ -1,36 +1,117 @@
 # ElastiX
 
-Drag-and-drop builder for composing Elasticsearch query bodies. Drag clauses from the palette onto the canvas, configure them in the inspector, and copy the generated JSON.
+A visual builder for Elasticsearch bool queries. Drag-and-drop must / should / must_not blocks, drop templates or typed clauses inside them, peek the generated JSON, optionally count matching docs against a live cluster, or jump straight into Kibana Dev Tools with the query pre-loaded.
 
-## Run
-
-```sh
-npm install
-npm run dev
-```
-
-Opens http://localhost:5173
-
-## Build
-
-```sh
-npm run build
-```
+Designed to run on fully offline machines — no CDN dependencies at runtime.
 
 ## Stack
 
-- Vite + React 18 + TypeScript
-- @dnd-kit (drag and drop)
-- Zustand (state, persisted to localStorage)
-- Tailwind CSS
-- Monaco Editor (JSON output)
+- **React 18** + **TypeScript 5** + **Vite 5**
+- **Tailwind 3** (class-based dark mode)
+- **zustand 4** for state, with `persist` migrations
+- **@dnd-kit** for drag-and-drop
+- **Node.js** (plain `http`) for the production server
 
-## How to use
+## Quick start
 
-1. Drag a `bool` (or any clause) from the left palette onto the canvas.
-2. For `bool`: drag more clauses into its `must` / `should` / `must_not` / `filter` slots.
-3. Click a clause to edit its fields in the right inspector.
-4. The JSON pane at the bottom shows the live ES query body.
-5. Click **Copy** to put the JSON on your clipboard — paste it into Kibana Dev Tools as the body of `GET /<index>/_search`.
+```bash
+npm install
+npm run dev          # Vite dev server on :5173
+npm run build        # type-check + production bundle to ./dist
+node server.js       # serves ./dist on :4000 (PORT env to override)
+```
 
-Tree state persists to `localStorage` automatically. Use the **Clear** button to start over.
+## Environment
+
+The frontend never sees these — they're read by the dev middleware (`vite.config.ts`) and the prod server (`server.js`) via the shared module `server/elasticApi.js`.
+
+| Var | Purpose |
+|---|---|
+| `ELASTIC_URL` | Elasticsearch base URL (e.g. `https://es.local:9200`). Required for the **Count docs** button. |
+| `ELASTIC_USERNAME` / `ELASTIC_PASSWORD` | Basic auth credentials. |
+| `ELASTIC_API_KEY` | Alternative to user/pass — base64 `id:key`. |
+| `ELASTIC_INDEX` / `ELASTIC_INDEX_PATTERN` | Index pattern to count against. Default `*`. |
+| `ELASTIC_INSECURE` | Set `true` to skip TLS verification (dev only). |
+| `KIBANA_URL` | Kibana base URL. Required for the **Open in Kibana** button. |
+| `KIBANA_DATA_VIEW_ID` | Optional Discover data-view UUID. |
+
+Copy `.env.example` to `.env` for dev. In prod, set them on the container/pod.
+
+## Project layout
+
+```
+src/
+  App.tsx                       header, footer, drag wiring, layout
+  store.ts                      zustand store + query builder
+  types.ts                      BuilderSource union + MODE_META
+  index.css                     Tailwind base + scrollbar + a few keyframes
+  components/
+    Builder.tsx                 main canvas area
+    BlockCard.tsx               a must / should / must_not / nested block
+    BuilderRow.tsx              one leaf row inside a block
+    ModeBlockPalette.tsx        left sidebar — block + clause cards
+    TemplateLibrary.tsx         right sidebar — searchable templates
+    QueryOutput.tsx             top bar — collapsible Generated Query
+    JsonTree.tsx                read-only collapsible JSON viewer
+    JsonPreviewModal.tsx        the "show full JSON" popup
+    *Form.tsx                   one form per leaf clause type
+  utils/
+    theme.ts                    light/dark toggle + system preference
+    preview.tsx                 React context for the JSON preview modal
+    dateMath.ts                 ES "now-15m"-style expressions
+server/
+  elasticApi.js                 shared /api/config + /api/count handlers
+server.js                       prod static server (mounts /api/*)
+vite.config.ts                  dev server (mounts /api/* via the same module)
+public/
+  favicon.svg
+  templates.json                local fallback template catalog
+```
+
+## Features
+
+- **Block-based bool builder** — must, should, must_not. Drag to reorder, drag onto another block's body to nest.
+- **Nested queries** — a 4th block type with an editable `path:` that wraps its items in an ES `nested` clause.
+- **Leaf clauses** — custom (free JSON), timestamp (range), term, terms, exists, match, wildcard. Each has an optional title.
+- **Templates** — pulled from `public/templates.json` (or a ConfigMap mounted at `/etc/templates/templates.json` in K8s). Searchable. Eye button shows the JSON.
+- **Generated Query view** — collapsible JSON tree with per-node toggles; copy + count docs + open-in-Kibana.
+- **Dark mode** — header toggle, follows system preference until you choose, persists in localStorage.
+- **Import / Export** — save the entire builder state (blocks, names, paths, titles, nested structure) as a `.elastix` file. Re-importable.
+- **Offline-first** — no Google Fonts, no Monaco, no runtime CDN calls. JSON syntax highlighting is hand-rolled.
+
+## Templates
+
+The catalog at `public/templates.json` is the dev fallback. In production, mount your own at `/etc/templates/templates.json` (the entry script at `server.js` reads it on boot and inlines it into `index.html`).
+
+A template is:
+
+```json
+{
+  "id": "abc-123",
+  "name": "Production traffic",
+  "description": "envs marked prod",
+  "query": { "term": { "env": "prod" } }
+}
+```
+
+## Production deployment
+
+Build the SPA, then run the static server:
+
+```bash
+npm ci
+npm run build
+PORT=4000 \
+  ELASTIC_URL=https://es.local:9200 \
+  ELASTIC_USERNAME=elastic \
+  ELASTIC_PASSWORD=… \
+  KIBANA_URL=https://kibana.local \
+  node server.js
+```
+
+Same code path works inside a container or a K8s pod. Templates can be supplied via a mounted ConfigMap at `/etc/templates/templates.json` — no rebuild needed.
+
+## Notes
+
+- The zustand persist key is `eck-template-builder-v2`. Schema version lives in `store.ts` (currently v6). Cross-version migrations live in the `migrate` callback.
+- The drag-and-drop collision detection in `App.tsx` has hysteresis to avoid flickering between nested drop targets — see the comment block in `collisionDetection`.

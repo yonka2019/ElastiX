@@ -267,6 +267,9 @@ type Props = {
   // card is locked until the user has at least one must/should/must_not
   // block on the canvas.
   nestedDisabled: boolean;
+  // Leaf clauses can only be dropped into a block — without any blocks on
+  // the canvas there's nowhere valid to drop, so the cards visually mute.
+  leavesDisabled: boolean;
 };
 
 function PaletteCard({ mode, isDragging }: { mode: BoolMode; isDragging: boolean }) {
@@ -330,7 +333,15 @@ function PaletteNestedCard({ isDragging, disabled }: { isDragging: boolean; disa
   );
 }
 
-function LeafCard({ spec, isDragging }: { spec: LeafSpec; isDragging: boolean }) {
+function LeafCard({
+  spec,
+  isDragging,
+  disabled,
+}: {
+  spec: LeafSpec;
+  isDragging: boolean;
+  disabled: boolean;
+}) {
   const { setNodeRef, attributes, listeners } = useDraggable({
     id: `palette-leaf:${spec.id}`,
     data: {
@@ -339,18 +350,25 @@ function LeafCard({ spec, isDragging }: { spec: LeafSpec; isDragging: boolean })
       leafKind: spec.kind,
       payload: spec.payload,
     },
+    disabled,
   });
   return (
     <div
       ref={setNodeRef}
-      {...attributes}
-      {...listeners}
+      {...(disabled ? {} : attributes)}
+      {...(disabled ? {} : listeners)}
       className={[
-        'group relative flex cursor-grab select-none items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow active:cursor-grabbing ring-2 ring-transparent dark:border-neutral-700 dark:bg-neutral-900',
-        spec.ring,
+        'group relative flex select-none items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-sm transition-all ring-2 ring-transparent dark:border-neutral-700 dark:bg-neutral-900',
+        disabled
+          ? 'cursor-not-allowed opacity-70 saturate-50'
+          : `cursor-grab hover:-translate-y-0.5 hover:shadow active:cursor-grabbing ${spec.ring}`,
         isDragging ? 'opacity-30' : '',
       ].join(' ')}
-      title={`Drag to add a ${spec.label} clause into a block`}
+      title={
+        disabled
+          ? 'Add a block first — clauses can only be dropped into a block'
+          : `Drag to add a ${spec.label} clause into a block`
+      }
     >
       <span className={`flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 font-mono text-sm dark:border-neutral-700 dark:bg-neutral-800 ${spec.accent}`}>
         {spec.glyph}
@@ -370,6 +388,7 @@ export function ModeBlockPalette({
   activeDragLeaf,
   activeDragNestedBlock,
   nestedDisabled,
+  leavesDisabled,
 }: Props) {
   return (
     <aside className="flex h-full w-56 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950">
@@ -388,7 +407,12 @@ export function ModeBlockPalette({
           <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
         </div>
         {LEAF_PALETTE.map((spec) => (
-          <LeafCard key={spec.id} spec={spec} isDragging={activeDragLeaf === spec.id} />
+          <LeafCard
+            key={spec.id}
+            spec={spec}
+            isDragging={activeDragLeaf === spec.id}
+            disabled={leavesDisabled}
+          />
         ))}
       </div>
     </aside>
