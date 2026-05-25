@@ -14,7 +14,7 @@ export function TemplateCard({ template, variant = 'library', dragging }: Props)
   return (
     <div
       className={[
-        'group relative rounded-md border px-3 py-2.5 transition-shadow',
+        'group relative select-none rounded-md border px-3 py-2.5 transition-shadow',
         'bg-white dark:bg-neutral-900',
         overlay
           ? 'border-blue-500 shadow-xl ring-2 ring-blue-200 -rotate-1 scale-[1.02] dark:ring-blue-800'

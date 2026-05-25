@@ -286,7 +286,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
     <div
       ref={setNodeRef}
       style={style}
-      className="drop-in group relative flex items-center gap-3 overflow-hidden rounded-md border border-neutral-200 bg-white pl-3 pr-3 py-2.5 shadow-sm transition-all hover:border-neutral-300 hover:shadow dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
+      className="drop-in group relative flex select-none items-center gap-3 overflow-hidden rounded-md border border-neutral-200 bg-white pl-3 pr-3 py-2.5 shadow-sm transition-all hover:border-neutral-300 hover:shadow dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
     >
       <span className={`absolute left-0 top-0 h-full w-1 ${meta.bar}`} aria-hidden />
 

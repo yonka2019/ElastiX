@@ -132,7 +132,7 @@ function BlockCardImpl({
         />
       )}
       {/* Block header — colored (orange for nested), with drag handle and remove */}
-      <header className={`${headerGradient} flex flex-col gap-1 px-4 py-3 text-white`}>
+      <header className={`${headerGradient} flex select-none flex-col gap-1 px-4 py-3 text-white`}>
       <div className="flex items-center gap-3">
         <span
           {...attributes}

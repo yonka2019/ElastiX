@@ -30,11 +30,11 @@ function LibraryItem({
       ref={setNodeRef}
       {...(disabled ? {} : attributes)}
       {...(disabled ? {} : listeners)}
-      className={
+      className={`select-none ${
         disabled
           ? 'cursor-not-allowed opacity-50 grayscale'
           : 'cursor-grab active:cursor-grabbing'
-      }
+      }`}
       title={disabled ? 'Add a block first — templates drop into blocks' : undefined}
     >
       <TemplateCard template={template} variant="library" dragging={isDragging} />
