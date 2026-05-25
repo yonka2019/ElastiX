@@ -650,6 +650,7 @@ export default function App() {
               isDraggingIntoBlock={
                 activeDrag?.kind === 'palette-block' ||
                 activeDrag?.kind === 'palette-leaf' ||
+                activeDrag?.kind === 'palette-block-nested' ||
                 activeDrag?.kind === 'template'
               }
             />
