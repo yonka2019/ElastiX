@@ -36,11 +36,11 @@ export function Builder({
   const empty = blocks.length === 0;
 
   return (
-    <section className="flex h-full flex-1 flex-col bg-neutral-50 dark:bg-neutral-950">
-      <div className="flex items-center justify-between border-b border-neutral-200 bg-white px-5 py-3 dark:border-neutral-800 dark:bg-neutral-900">
+    <section className="flex flex-1 flex-col bg-neutral-50 md:h-full dark:bg-neutral-950">
+      <div className="flex items-center justify-between border-b border-neutral-200 bg-white px-3 py-2 sm:px-5 sm:py-3 dark:border-neutral-800 dark:bg-neutral-900">
         <div>
           <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Builder</div>
-          <div className="text-xs text-neutral-500 dark:text-neutral-400">
+          <div className="hidden text-xs text-neutral-500 md:block dark:text-neutral-400">
             Drag blocks from the left palette, then drop templates under them
           </div>
         </div>
@@ -63,7 +63,7 @@ export function Builder({
 
       <div
         ref={setNodeRef}
-        className="flex-1 overflow-y-auto px-5 py-5 pb-10"
+        className="min-h-[40vh] px-3 py-4 pb-10 sm:px-5 sm:py-5 md:min-h-0 md:flex-1 md:overflow-y-auto"
       >
         {empty ? (
           <EmptyState

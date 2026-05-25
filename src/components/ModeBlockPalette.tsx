@@ -391,18 +391,24 @@ export function ModeBlockPalette({
   leavesDisabled,
 }: Props) {
   return (
-    <aside className="flex h-full w-56 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950">
-      <div className="border-b border-neutral-200 bg-white px-3 py-3 dark:border-neutral-800 dark:bg-neutral-900">
+    <aside className="flex w-full shrink-0 flex-col border-b border-neutral-200 bg-neutral-50 md:h-full md:max-h-none md:w-56 md:border-b-0 md:border-r dark:border-neutral-800 dark:bg-neutral-950">
+      <div className="border-b border-neutral-200 bg-white px-3 py-2 sm:py-3 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Blocks</div>
-        <div className="text-[11px] text-neutral-500 dark:text-neutral-400">Drag onto the builder</div>
+        <div className="hidden text-[11px] text-neutral-500 sm:block dark:text-neutral-400">Drag onto the builder</div>
       </div>
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-3 pb-10">
+      {/*
+        Mobile (<md): 2-column grid keeps all 11 palette cards in ~6 short
+        rows so the Builder is reachable with one short scroll. Divider
+        spans the full row.
+        md+: single-column scrolling list (the original shape).
+      */}
+      <div className="grid grid-cols-2 gap-2 p-3 md:flex md:flex-1 md:flex-col md:overflow-y-auto md:pb-10">
         {MODE_ORDER.map((m) => (
           <PaletteCard key={m} mode={m} isDragging={activeDragMode === m} />
         ))}
         <PaletteNestedCard isDragging={activeDragNestedBlock} disabled={nestedDisabled} />
 
-        <div className="mt-3 flex items-center gap-2 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
+        <div className="col-span-2 mt-2 flex items-center gap-2 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400 md:col-span-1 md:mt-3 dark:text-neutral-500">
           <span>Clauses</span>
           <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
         </div>

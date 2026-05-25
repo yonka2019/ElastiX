@@ -68,7 +68,7 @@ export function QueryOutput() {
     >
       <div
         onClick={() => setExpanded((v) => !v)}
-        className="group relative flex cursor-pointer items-center gap-3 overflow-hidden border-b border-blue-200 bg-gradient-to-r from-sky-50 via-blue-50 to-indigo-50 px-5 py-2 transition-colors duration-300 ease-out [&>*:not(.hover-overlay)]:relative [&>*:not(.hover-overlay)]:z-10 dark:border-blue-900 dark:from-sky-950 dark:via-blue-950 dark:to-indigo-950"
+        className="group relative flex cursor-pointer items-center gap-2 overflow-hidden border-b border-blue-200 bg-gradient-to-r from-sky-50 via-blue-50 to-indigo-50 px-3 py-2 transition-colors duration-300 ease-out sm:gap-3 sm:px-5 [&>*:not(.hover-overlay)]:relative [&>*:not(.hover-overlay)]:z-10 dark:border-blue-900 dark:from-sky-950 dark:via-blue-950 dark:to-indigo-950"
       >
         {/* Hover gradient as a separately-faded overlay so the color
             change is smooth — CSS can't tween background-image gradients
@@ -100,16 +100,19 @@ export function QueryOutput() {
             <path d="M6 15l6-6 6 6" />
           </svg>
         </button>
-        <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">Generated Query</span>
+        <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+          <span className="hidden sm:inline">Generated Query</span>
+          <span className="sm:hidden">Query</span>
+        </span>
         {!expanded && (
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-blue-600/80 dark:text-blue-300/80">
+          <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-blue-600/80 sm:inline dark:text-blue-300/80">
             click to expand ▾
           </span>
         )}
         {total === 0 ? (
-          <span className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400">empty → match_all</span>
+          <span className="hidden font-mono text-[11px] text-neutral-500 sm:inline dark:text-neutral-400">empty → match_all</span>
         ) : (
-          <span className="flex items-center gap-1.5">
+          <span className="hidden items-center gap-1.5 sm:flex">
             {MODE_ORDER.filter((m) => counts[m] > 0).map((m) => {
               const meta = MODE_META[m];
               return (
@@ -172,7 +175,7 @@ export function QueryOutput() {
                 <circle cx="4.5" cy="17" r="1" />
               </svg>
             )}
-            {count.kind === 'loading' ? 'Counting…' : 'Count docs'}
+            <span className="hidden sm:inline">{count.kind === 'loading' ? 'Counting…' : 'Count docs'}</span>
           </button>
           <button
             onClick={(e) => {
@@ -191,7 +194,7 @@ export function QueryOutput() {
                 <path d="M5 15V5a2 2 0 0 1 2-2h10" />
               </svg>
             )}
-            {copied ? 'Copied' : 'Copy JSON'}
+            <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy JSON'}</span>
           </button>
         </div>
       </div>

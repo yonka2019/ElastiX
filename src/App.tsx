@@ -7,6 +7,7 @@ import {
   DragOverlay,
   DragStartEvent,
   PointerSensor,
+  TouchSensor,
   UniqueIdentifier,
   pointerWithin,
   rectIntersection,
@@ -124,7 +125,14 @@ export default function App() {
   const LEAVE_HYSTERESIS_PX = 24;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    // Touch needs a small press delay so vertical scrolling on mobile isn't
+    // hijacked by accidental drag activations. 180ms with a 6px tolerance is
+    // the sweet spot — short enough to feel responsive, long enough that a
+    // flick-scroll on a palette card scrolls instead of grabbing.
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 180, tolerance: 6 },
+    })
   );
 
   // Prefer pointer-within so nesting only happens when the cursor is actually
@@ -728,7 +736,15 @@ export default function App() {
     >
       <div className="flex h-screen flex-col overflow-hidden bg-neutral-50 dark:bg-neutral-950">
         <Header />
-        <div className="flex min-h-0 flex-1">
+        {/*
+          Mobile (<md): the main area becomes a single vertical scroll
+          container. Palette, Builder, Templates stack top-to-bottom; each
+          side rail caps at ~40vh so the Builder always stays prominent.
+          Stacking (rather than tabs) keeps every drop target reachable
+          during a drag — @dnd-kit autoscrolls the outer container.
+          md+: classic 3-column flex row, each column scrolls on its own.
+        */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
           <ModeBlockPalette
             activeDragMode={activeDrag?.kind === 'palette-block' ? activeDrag.mode : null}
             activeDragLeaf={activeDrag?.kind === 'palette-leaf' ? activeDrag.leafId : null}
@@ -736,7 +752,7 @@ export default function App() {
             nestedDisabled={!blocks.some((b) => !b.nested)}
             leavesDisabled={blocks.length === 0}
           />
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-w-0 flex-1 flex-col md:min-h-0">
             <QueryOutput />
             <Builder
               isDraggingTemplate={activeDrag?.kind === 'template'}
@@ -844,32 +860,61 @@ function Header() {
 
   return (
     <>
-      <header className="relative flex shrink-0 items-center gap-3 border-b border-neutral-200 bg-white px-5 py-3 dark:border-neutral-800 dark:bg-neutral-900">
+      <header className="relative flex shrink-0 items-center gap-2 border-b border-neutral-200 bg-white px-3 py-2 sm:gap-3 sm:px-5 sm:py-3 dark:border-neutral-800 dark:bg-neutral-900">
         <span
           aria-hidden
           className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-emerald-500 via-sky-500 to-rose-500"
         />
-        <ElastixLogo className="h-7 w-7" />
+        <ElastixLogo className="h-6 w-6 sm:h-7 sm:w-7" />
         <div className="flex items-baseline gap-1.5">
           <span className="text-base font-semibold text-neutral-900 dark:text-neutral-100">ElastiX</span>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <button
-            onClick={toggle}
+            onClick={(e) => toggle({ x: e.clientX, y: e.clientY })}
             className="inline-flex items-center justify-center rounded-md border border-neutral-200 bg-white p-1.5 text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? (
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            {/* Sun and moon are stacked. The visible one is upright at full
+                opacity; the other is rotated, shrunk, and faded out. Toggling
+                theme swaps which is which — Tailwind's transition utilities
+                tween rotate/scale/opacity simultaneously for a clean morph. */}
+            <span className="relative block h-4 w-4">
+              <svg
+                viewBox="0 0 24 24"
+                className={`absolute inset-0 h-4 w-4 motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out ${
+                  theme === 'dark'
+                    ? 'rotate-0 scale-100 opacity-100'
+                    : '-rotate-90 scale-50 opacity-0'
+                }`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
                 <circle cx="12" cy="12" r="4" />
                 <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
               </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <svg
+                viewBox="0 0 24 24"
+                className={`absolute inset-0 h-4 w-4 motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out ${
+                  theme === 'light'
+                    ? 'rotate-0 scale-100 opacity-100'
+                    : 'rotate-90 scale-50 opacity-0'
+                }`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
-            )}
+            </span>
           </button>
           <button
             onClick={exportState}
@@ -882,7 +927,7 @@ function Header() {
               <path d="M7 10l5 5 5-5" />
               <path d="M5 21h14" />
             </svg>
-            Export
+            <span className="hidden sm:inline">Export</span>
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -894,7 +939,7 @@ function Header() {
               <path d="M7 14l5-5 5 5" />
               <path d="M5 3h14" />
             </svg>
-            Import
+            <span className="hidden sm:inline">Import</span>
           </button>
           <input
             ref={fileInputRef}
@@ -925,7 +970,7 @@ function Header() {
               <rect x="3" y="16.5" width="9" height="4" rx="1.5" fill="#0A5BB0" />
               <rect x="13" y="16.5" width="8" height="4" rx="1.5" fill="#FA744E" />
             </svg>
-            Open in Kibana
+            <span className="hidden sm:inline">Open in Kibana</span>
           </button>
         </div>
       </header>

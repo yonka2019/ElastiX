@@ -1,32 +1,32 @@
 [
   {
     "id": "tpl-active-status",
-    "name": "סטטוס פעיל",
-    "description": "מסמכים בסטטוס פעיל",
+    "name": "Active status",
+    "description": "Documents with status = active",
     "query": { "term": { "status": "active" } }
   },
   {
     "id": "tpl-last-24h",
-    "name": "24 שעות אחרונות",
-    "description": "טווח של 24 שעות אחרונות",
+    "name": "Last 24 hours",
+    "description": "Time range covering the last 24 hours",
     "query": { "range": { "@timestamp": { "gte": "now-24h" } } }
   },
   {
     "id": "tpl-error-level",
-    "name": "רמת שגיאה",
-    "description": "רשומות לוג ברמת שגיאה",
+    "name": "Error level",
+    "description": "Log records at error level",
     "query": { "match": { "level": "error" } }
   },
   {
     "id": "tpl-has-user",
-    "name": "מזהה משתמש קיים",
-    "description": "מסמכים שבהם השדה קיים",
+    "name": "User ID present",
+    "description": "Documents where the field exists",
     "query": { "exists": { "field": "user.id" } }
   },
   {
     "id": "tpl-prod-env",
-    "name": "סביבת ייצור",
-    "description": "מסמכים בסביבת ייצור",
+    "name": "Production environment",
+    "description": "Documents in the production environment",
     "query": { "term": { "environment": "production" } }
   }
 ]
