@@ -1,0 +1,45 @@
+name: Build Docker on Tag
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract tag name
+        id: tag
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build Docker image and export to tar
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: myapp:${{ steps.tag.outputs.tag }}
+          outputs: type=docker,dest=/tmp/elastix-${{ steps.tag.outputs.tag }}.tar
+
+      - name: Upload Docker image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name:  elastix-${{ steps.tag.outputs.tag }}
+          path: /tmp/elastix-${{ steps.tag.outputs.tag }}.tar
+          retention-days: 30
+
+      - name: Create GitHub Release with image
+        uses: softprops/action-gh-release@v2
+        with:
+          files: /tmp/elastix-${{ steps.tag.outputs.tag }}.tar
+          name: Release ${{ steps.tag.outputs.tag }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
