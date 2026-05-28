@@ -60,7 +60,7 @@ jobs:
           test -f "$FILE" || { echo "::error::missing $FILE"; ls -lah /tmp; exit 1; }
 
           aws s3 cp "$FILE" \
-            "s3://packages/elastix/elastix-${TAG}.tar.gz" \
+            "s3://packages/elastix/elastix-${TAG}.tar" \
             --endpoint-url "$R2_ENDPOINT" \
             --metadata "tag=${TAG},commit=${GITHUB_SHA}" \
             --checksum-algorithm CRC32 \
