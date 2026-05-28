@@ -47,19 +47,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
 
-
-      - name: Configure AWS credentials via keys
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-
-      - name: Upload Docker image to S3
+      - name: Upload Docker image to R2
         env:
-          AWS_ENDPOINT_URL_S3: ${{ secrets.S3_ENDPOINT_URL }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_EC2_METADATA_DISABLED: true
+          R2_ENDPOINT: https://bb89f54363dfbd7fcd4f9da7a0afae51.r2.cloudflarestorage.com
+          TAG: ${{ steps.tag.outputs.tag }}
         run: |
-          aws s3 cp /tmp/elastix-${{ steps.tag.outputs.tag }}.tar.gz \
-            s3://packages/elastix/elastix-${{ steps.tag.outputs.tag }}.tar.gz \
-            --metadata "tag=${{ steps.tag.outputs.tag }},commit=${{ github.sha }}"
+          FILE="/tmp/elastix-${TAG}.tar.gz"
+          test -f "$FILE" || { echo "::error::missing $FILE"; ls -lah /tmp; exit 1; }
+
+          aws s3 cp "$FILE" \
+            "s3://packages/elastix/elastix-${TAG}.tar.gz" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --metadata "tag=${TAG},commit=${GITHUB_SHA}" \
+            --checksum-algorithm CRC32 \
+            --no-progress

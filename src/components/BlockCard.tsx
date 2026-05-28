@@ -334,6 +334,7 @@ function BlockCardImpl({
                       index={idx}
                       templatesById={templatesById}
                       onRemove={() => removeItem(item.instanceId)}
+                      isSubbed={nested !== undefined}
                     />
                   )
                 )}

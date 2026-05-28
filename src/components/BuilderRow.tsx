@@ -21,9 +21,14 @@ type Props = {
   templatesById: Map<string, Template>;
   index: number;
   onRemove: () => void;
+  // True when this row sits inside a block that is itself rendered as an
+  // item of another block (nested-as-item, including ES-nested blocks). The
+  // left bar uses a subdued shade so the row visually reads as belonging
+  // to a sub-context rather than a top-level group.
+  isSubbed?: boolean;
 };
 
-export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }: Props) {
+export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, isSubbed }: Props) {
   const updateCustomItem = useStore((s) => s.updateCustomItem);
   const updateTimestampItem = useStore((s) => s.updateTimestampItem);
   const updateTermItem = useStore((s) => s.updateTermItem);
@@ -288,7 +293,10 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove }
       style={style}
       className="drop-in group relative flex select-none items-center gap-3 overflow-hidden rounded-md border border-neutral-200 bg-white pl-3 pr-3 py-2.5 shadow-sm transition-all hover:border-neutral-300 hover:shadow dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
     >
-      <span className={`absolute left-0 top-0 h-full w-1 ${meta.bar}`} aria-hidden />
+      <span
+        className={`absolute left-0 top-0 h-full w-1 ${isSubbed ? meta.barSub : meta.bar}`}
+        aria-hidden
+      />
 
       <span
         {...attributes}

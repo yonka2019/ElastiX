@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useStore, buildQuery, modeOccurrences, totalItemCount } from '../store';
 import { MODE_META, MODE_ORDER } from '../types';
 import { JsonTree } from './JsonTree';
+import { parseQueryToBlocks } from '../utils/importQuery';
 
 type CountState =
   | { kind: 'idle' }
@@ -13,9 +14,12 @@ export function QueryOutput() {
   const templates = useStore((s) => s.templates);
   const blocks = useStore((s) => s.blocks);
   const config = useStore((s) => s.config);
+  const replaceBlocks = useStore((s) => s.replaceBlocks);
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [count, setCount] = useState<CountState>({ kind: 'idle' });
+  const [importError, setImportError] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const built = useMemo(() => buildQuery(templates, blocks), [templates, blocks]);
   const json = useMemo(() => JSON.stringify(built, null, 2), [built]);
@@ -31,6 +35,41 @@ export function QueryOutput() {
     } catch {
       /* ignore */
     }
+  };
+
+  const importRawQuery = async (file: File) => {
+    setImportError(null);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text) as unknown;
+      const parsed = parseQueryToBlocks(data);
+      if (parsed.empty || parsed.blocks.length === 0) {
+        setImportError('No clauses found (match_all or empty).');
+        return;
+      }
+      if (blocks.length > 0) {
+        const ok = window.confirm(
+          'Replace the current builder with the imported query? Your current blocks will be lost.'
+        );
+        if (!ok) return;
+      }
+      replaceBlocks(parsed.blocks);
+    } catch (err) {
+      setImportError(`Failed to import: ${(err as Error).message}`);
+    }
+  };
+
+  const exportJson = () => {
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    a.href = url;
+    a.download = `elastix-query-${ts}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const runCount = async () => {
@@ -196,8 +235,65 @@ export function QueryOutput() {
             )}
             <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy JSON'}</span>
           </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              exportJson();
+            }}
+            className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:border-indigo-700 dark:hover:bg-indigo-900"
+            title="Download query as .json"
+            aria-label="Export query as JSON file"
+          >
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 3v12" />
+              <path d="M7 10l5 5 5-5" />
+              <path d="M5 21h14" />
+            </svg>
+            <span className="hidden sm:inline">Export</span>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              importInputRef.current?.click();
+            }}
+            className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:border-indigo-700 dark:hover:bg-indigo-900"
+            title="Load a raw Elasticsearch query JSON — clauses become editable blocks; unrecognised shapes become custom items"
+            aria-label="Import raw query JSON"
+          >
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 21V9" />
+              <path d="M7 14l5-5 5 5" />
+              <path d="M5 3h14" />
+            </svg>
+            <span className="hidden sm:inline">Import</span>
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void importRawQuery(f);
+              e.target.value = '';
+            }}
+          />
         </div>
       </div>
+      {importError && (
+        <div className="flex shrink-0 items-center gap-3 border-b border-rose-300 bg-rose-50 px-5 py-1.5 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
+          <span className="font-semibold">Query import error:</span>
+          <span className="truncate">{importError}</span>
+          <button
+            onClick={() => setImportError(null)}
+            className="ml-auto rounded p-0.5 hover:bg-rose-100 dark:hover:bg-rose-900"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {expanded && (
         <div className="flex-1 min-h-0 overflow-auto bg-white px-4 py-3 dark:bg-neutral-950">

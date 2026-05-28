@@ -51,6 +51,15 @@ export function TermsForm({
         e.preventDefault();
         submit();
       }}
+      onKeyDown={(e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          submit();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          onCancel();
+        }
+      }}
       className={`rounded-md border-2 border-dashed ${meta.softBorder} ${meta.softBg} p-3`}
     >
       <div className="mb-2 flex items-center gap-2">
@@ -115,7 +124,7 @@ export function TermsForm({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
               e.preventDefault();
               addValues(draft);
               setDraft('');

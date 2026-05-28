@@ -839,7 +839,7 @@ function Header() {
       const text = await file.text();
       const data = JSON.parse(text) as { kind?: string; blocks?: unknown };
       if (data.kind !== 'elastix-state') {
-        setIoError('File is not an ElastiX state export.');
+        setIoError('File is not an ElastiX state export. To import a raw query JSON, use the Import button next to "Generated Query" → Export.');
         return;
       }
       if (!Array.isArray(data.blocks)) {
@@ -944,7 +944,7 @@ function Header() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".elastix,.json,application/json"
+            accept=".elastix"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];

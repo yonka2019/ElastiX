@@ -89,6 +89,15 @@ export function CustomBlockForm({
         e.preventDefault();
         submit();
       }}
+      onKeyDown={(e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          submit();
+        } else if (e.key === 'Escape' && onCancel) {
+          e.preventDefault();
+          onCancel();
+        }
+      }}
       className={`rounded-md border-2 border-dashed ${meta.softBorder} ${meta.softBg} p-3`}
     >
       <div className="mb-2 flex items-center gap-2">
@@ -313,6 +322,40 @@ function HighlightedJsonEditor({
                 });
               }
             }
+            return;
+          }
+          // Auto-indent on Enter. Skip when Ctrl/Meta is held — that shortcut
+          // is the form-level "save and close" and must reach the form handler
+          // without us mutating the textarea first.
+          if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            const ta = e.currentTarget;
+            const start = ta.selectionStart;
+            const end = ta.selectionEnd;
+            const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+            const leading = (value.slice(lineStart, start).match(/^[ \t]*/) ?? [''])[0];
+            const prev = value[start - 1];
+            const next = value[end];
+            const opensBlock = prev === '{' || prev === '[';
+            const smartPair = (prev === '{' && next === '}') || (prev === '[' && next === ']');
+            const extra = '  ';
+            let insertion: string;
+            let caretOffset: number;
+            if (smartPair) {
+              insertion = `\n${leading}${extra}\n${leading}`;
+              caretOffset = 1 + leading.length + extra.length;
+            } else if (opensBlock) {
+              insertion = `\n${leading}${extra}`;
+              caretOffset = insertion.length;
+            } else {
+              insertion = `\n${leading}`;
+              caretOffset = insertion.length;
+            }
+            const nextValue = value.slice(0, start) + insertion + value.slice(end);
+            onChange(nextValue);
+            requestAnimationFrame(() => {
+              ta.selectionStart = ta.selectionEnd = start + caretOffset;
+            });
           }
         }}
         spellCheck={false}

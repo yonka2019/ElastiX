@@ -29,6 +29,15 @@ export function TermForm({ sectionMode, initialTitle, initialField, initialValue
         e.preventDefault();
         submit();
       }}
+      onKeyDown={(e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          submit();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          onCancel();
+        }
+      }}
       className={`rounded-md border-2 border-dashed ${meta.softBorder} ${meta.softBg} p-3`}
     >
       <div className="mb-2 flex items-center gap-2">

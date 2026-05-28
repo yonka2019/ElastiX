@@ -11,6 +11,10 @@ export const MODE_META: Record<
     dot: string;
     chip: string;
     bar: string;
+    // Subdued bar shade. Used when a clause is rendered inside a block
+    // that is itself nested as an item of another block — the row reads as
+    // belonging to a sub-context instead of the top level.
+    barSub: string;
     softBg: string;
     softBgStrong: string;
     softBorder: string;
@@ -28,6 +32,7 @@ export const MODE_META: Record<
     dot: 'bg-emerald-500',
     chip: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800',
     bar: 'bg-emerald-500',
+    barSub: 'bg-emerald-300 dark:bg-emerald-700',
     softBg: 'bg-emerald-50/60 dark:bg-emerald-950/40',
     softBgStrong: 'bg-emerald-100/60 dark:bg-emerald-900/40',
     softBorder: 'border-emerald-200 dark:border-emerald-800',
@@ -44,6 +49,7 @@ export const MODE_META: Record<
     dot: 'bg-sky-500',
     chip: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950 dark:text-sky-300 dark:border-sky-800',
     bar: 'bg-sky-500',
+    barSub: 'bg-sky-300 dark:bg-sky-700',
     softBg: 'bg-sky-50/60 dark:bg-sky-950/40',
     softBgStrong: 'bg-sky-100/60 dark:bg-sky-900/40',
     softBorder: 'border-sky-200 dark:border-sky-800',
@@ -60,6 +66,7 @@ export const MODE_META: Record<
     dot: 'bg-rose-500',
     chip: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800',
     bar: 'bg-rose-500',
+    barSub: 'bg-rose-300 dark:bg-rose-700',
     softBg: 'bg-rose-50/60 dark:bg-rose-950/40',
     softBgStrong: 'bg-rose-100/60 dark:bg-rose-900/40',
     softBorder: 'border-rose-200 dark:border-rose-800',

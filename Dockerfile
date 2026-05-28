@@ -1,23 +1,21 @@
 # syntax=docker/dockerfile:1.7
 
-# --- 1. install deps in an isolated layer keyed off the lockfile ---
-FROM node:20-alpine AS deps
+FROM node:20-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
-
-# --- 2. build the static bundle ---
-FROM node:20-alpine AS build
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY tsconfig.json vite.config.ts tailwind.config.js postcss.config.js index.html ./
+COPY public ./public
+COPY src ./src
+COPY server ./server
+COPY server.js ./server.js
 RUN npm run build
 
-# --- 3. serve the static bundle with a tiny Node server (no nginx) ---
 FROM node:20-alpine AS runtime
 WORKDIR /app
 COPY --from=build /app/dist ./web
 COPY server.js ./server.js
+COPY server ./server
 ENV NODE_ENV=production \
     PORT=4000
 EXPOSE 4000
