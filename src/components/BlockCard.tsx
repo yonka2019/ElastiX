@@ -2,7 +2,7 @@ import { memo, useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { ModeBlock, Template } from '../types';
+import type { BoolMode, ModeBlock, Template } from '../types';
 import { MODE_META, NESTED_META } from '../types';
 import { useStore, buildBlockQuery } from '../store';
 import { BuilderRow } from './BuilderRow';
@@ -25,6 +25,12 @@ type Props = {
     instanceId: string;
     parentMode: ModeBlock['mode'];
   };
+  // The mode of the nearest non-nested (i.e. non-ES-nested) ancestor block.
+  // Threaded down the render tree so leaf rows inside an ES-nested (orange)
+  // block can color their left bar with that ancestor's barSub — the orange
+  // wrapper's own inner-bool mode is a semantic detail, not a visual one for
+  // the rows it contains.
+  nearestNonNestedMode?: BoolMode;
 };
 
 function BlockCardImpl({
@@ -34,6 +40,7 @@ function BlockCardImpl({
   isDraggingItem,
   isDraggingIntoBlock,
   nested,
+  nearestNonNestedMode,
 }: Props) {
   const meta = MODE_META[block.mode];
   const removeItem = useStore((s) => s.removeItem);
@@ -325,12 +332,13 @@ function BlockCardImpl({
                       isDraggingItem={isDraggingItem}
                       isDraggingIntoBlock={isDraggingIntoBlock}
                       nested={{ instanceId: item.instanceId, parentMode: block.mode }}
+                      nearestNonNestedMode={isNested ? nearestNonNestedMode : block.mode}
                     />
                   ) : (
                     <BuilderRow
                       key={item.instanceId}
                       item={item}
-                      sectionMode={block.mode}
+                      sectionMode={isNested && nearestNonNestedMode ? nearestNonNestedMode : block.mode}
                       index={idx}
                       templatesById={templatesById}
                       onRemove={() => removeItem(item.instanceId)}
