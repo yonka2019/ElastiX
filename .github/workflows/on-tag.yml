@@ -56,7 +56,7 @@ jobs:
           R2_ENDPOINT: https://bb89f54363dfbd7fcd4f9da7a0afae51.r2.cloudflarestorage.com
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
-          FILE="/tmp/elastix-${TAG}.tar.gz"
+          FILE="/tmp/elastix-${TAG}.tar"
           test -f "$FILE" || { echo "::error::missing $FILE"; ls -lah /tmp; exit 1; }
 
           aws s3 cp "$FILE" \
