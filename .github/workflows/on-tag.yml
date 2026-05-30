@@ -47,13 +47,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
 
-      - name: Upload Docker image to R2
+      - name: Upload Docker image to S3
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
           AWS_EC2_METADATA_DISABLED: true
-          R2_ENDPOINT: https://bb89f54363dfbd7fcd4f9da7a0afae51.r2.cloudflarestorage.com
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT_URL }}
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           FILE="/tmp/elastix-${TAG}.tar"
