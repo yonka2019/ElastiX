@@ -61,7 +61,7 @@ jobs:
 
           aws s3 cp "$FILE" \
             "s3://packages/elastix/elastix-${TAG}.tar" \
-            --endpoint-url "$R2_ENDPOINT" \
+            --endpoint-url "$S3_ENDPOINT" \
             --metadata "tag=${TAG},commit=${GITHUB_SHA}" \
             --checksum-algorithm CRC32 \
             --no-progress
