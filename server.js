@@ -12,7 +12,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+  import { fileURLToPath } from 'node:url';
 import { makeElasticHandlers } from './server/elasticApi.js';
 
 const { handleConfig, handleCount } = makeElasticHandlers(process.env);
