@@ -2,6 +2,8 @@
 
 > **Make complicated huge elastic query the simpliest and most clear!**
 
+![Alt text](elastix_img.png)
+
 A visual builder for Elasticsearch bool queries. Drag-and-drop must / should / must_not blocks, drop templates or typed clauses inside them, peek the generated JSON, optionally count matching docs against a live cluster, or jump straight into Kibana Dev Tools with the query pre-loaded.
 
 Designed to run on fully offline machines — no CDN dependencies at runtime.
