@@ -24,6 +24,7 @@ import type { BoolMode, ModeBlock } from './types';
 import { MODE_META } from './types';
 import { PreviewProvider } from './utils/preview';
 import { useTheme } from './utils/theme';
+import { buildDiscoverUrl, buildDevToolsUrl } from './utils/kibana';
 
 type PaletteLeafDrag =
   | {
@@ -808,8 +809,12 @@ function Header() {
     if (!config.kibanaUrl) return;
     const built = buildQuery(templates, blocks) as { query?: Record<string, unknown> };
     const inner = built.query ?? { match_all: {} };
-    const consoleCmd = `GET ${config.indexPattern}/_search\n${JSON.stringify({ query: inner }, null, 2)}`;
-    const url = `${config.kibanaUrl}/app/dev_tools#/console?load_from=data:text/plain,${encodeURIComponent(consoleCmd)}`;
+    // With a data view UUID we can open Discover with the query applied; without
+    // one Discover has no data view to bind the query to, so fall back to the
+    // Dev Tools console (the original behaviour).
+    const url = config.dataViewId
+      ? buildDiscoverUrl(config.kibanaUrl, config.dataViewId, inner)
+      : buildDevToolsUrl(config.kibanaUrl, config.indexPattern, inner);
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 

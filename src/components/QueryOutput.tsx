@@ -10,6 +10,21 @@ type CountState =
   | { kind: 'ok'; count: number; at: number }
   | { kind: 'err'; message: string };
 
+// Normalise an error payload to a human string. Elasticsearch returns
+// `{ error: { type, reason, root_cause } }`; our middleware returns
+// `{ error: "message" }`. Either way we want readable text, never `[object
+// Object]` (which would also crash React if rendered as a child).
+function errorMessage(error: unknown): string {
+  if (!error) return '';
+  if (typeof error === 'string') return error;
+  if (typeof error === 'object') {
+    const e = error as { reason?: string; type?: string };
+    if (e.reason) return e.type ? `${e.type}: ${e.reason}` : e.reason;
+    return JSON.stringify(error);
+  }
+  return String(error);
+}
+
 export function QueryOutput() {
   const templates = useStore((s) => s.templates);
   const blocks = useStore((s) => s.blocks);
@@ -81,9 +96,18 @@ export function QueryOutput() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ query: inner }),
       });
-      const data = (await res.json()) as { count?: number; error?: string };
+      const rawBody = await res.text();
+      let data: { count?: number; error?: unknown } = {};
+      try {
+        data = rawBody ? (JSON.parse(rawBody) as typeof data) : {};
+      } catch {
+        // Non-JSON response — e.g. an HTML error page from a proxy, or no
+        // backend at all (static build / `vite preview` without server.js).
+        setCount({ kind: 'err', message: rawBody.slice(0, 200) || `HTTP ${res.status}` });
+        return;
+      }
       if (!res.ok) {
-        setCount({ kind: 'err', message: data.error ?? `HTTP ${res.status}` });
+        setCount({ kind: 'err', message: errorMessage(data.error) || `HTTP ${res.status}` });
         return;
       }
       if (typeof data.count !== 'number') {
