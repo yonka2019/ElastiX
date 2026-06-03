@@ -60,7 +60,7 @@ export function TemplateLibrary({ activeDragId, dragDisabled }: Props) {
   }, [templates, query]);
 
   return (
-    <aside className="flex w-full shrink-0 flex-col border-t border-neutral-200 bg-white md:h-full md:w-80 md:border-t-0 md:border-l dark:border-neutral-800 dark:bg-neutral-900">
+    <aside className="enter enter-d3 flex w-full shrink-0 flex-col border-t border-neutral-200 bg-white md:h-full md:w-80 md:border-t-0 md:border-l dark:border-neutral-800 dark:bg-neutral-900">
       <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
         <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Templates</div>
         <div className="text-xs text-neutral-500 dark:text-neutral-400">

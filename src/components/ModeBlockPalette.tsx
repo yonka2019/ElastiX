@@ -391,7 +391,7 @@ export function ModeBlockPalette({
   leavesDisabled,
 }: Props) {
   return (
-    <aside className="flex w-full shrink-0 flex-col border-b border-neutral-200 bg-neutral-50 md:h-full md:max-h-none md:w-56 md:border-b-0 md:border-r dark:border-neutral-800 dark:bg-neutral-950">
+    <aside className="enter enter-d1 flex w-full shrink-0 flex-col border-b border-neutral-200 bg-neutral-50 md:h-full md:max-h-none md:w-56 md:border-b-0 md:border-r dark:border-neutral-800 dark:bg-neutral-950">
       <div className="border-b border-neutral-200 bg-white px-3 py-2 sm:py-3 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Blocks</div>
         <div className="hidden text-[11px] text-neutral-500 sm:block dark:text-neutral-400">Drag onto the builder</div>

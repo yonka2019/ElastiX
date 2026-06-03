@@ -763,7 +763,7 @@ export default function App() {
             nestedDisabled={!blocks.some((b) => !b.nested)}
             leavesDisabled={blocks.length === 0}
           />
-          <div className="flex min-w-0 flex-1 flex-col md:min-h-0">
+          <div className="enter enter-d2 flex min-w-0 flex-1 flex-col md:min-h-0">
             <QueryOutput />
             <Builder
               isDraggingTemplate={activeDrag?.kind === 'template'}
@@ -792,9 +792,17 @@ export default function App() {
         </div>
         <div
           aria-hidden
-          className="pointer-events-none fixed bottom-2 right-3 z-40 font-mono text-[11px] tracking-wider text-neutral-500 dark:text-neutral-400"
+          className="pointer-events-none fixed bottom-2 right-3 z-40 font-mono text-[11px] font-semibold tracking-wider"
         >
-          yonka
+          <RainbowText text="by " />
+          {/* Only "yonka" re-enables pointer events so the rest of the corner
+              stays click-through; hovering it pops a little easter-egg bubble. */}
+          <span className="group pointer-events-auto relative inline-block cursor-default">
+            <RainbowText text="yonka" startIndex={2} />
+            <span className="pointer-events-none absolute bottom-full right-0 mb-2 translate-y-1 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 font-sans text-[11px] font-medium text-white opacity-0 shadow-lg transition-all duration-150 ease-out group-hover:translate-y-0 group-hover:opacity-100 dark:bg-neutral-100 dark:text-neutral-900">
+              lol hi
+            </span>
+          </span>
         </div>
       </div>
 
@@ -803,6 +811,47 @@ export default function App() {
       </DragOverlay>
     </DndContext>
     </PreviewProvider>
+  );
+}
+
+/**
+ * Renders `text` one letter at a time, each cycling through the spectrum via
+ * the `.rainbow-text` keyframes. A per-letter negative `animation-delay`
+ * offsets each character's phase so the colours read as a wave travelling
+ * across the word rather than the whole thing flashing in unison. Spaces are
+ * rendered as non-animated gaps. Decorative only — callers mark aria-hidden
+ * or supply accessible text elsewhere.
+ */
+function RainbowText({
+  text,
+  className = '',
+  step = 0.45,
+  startIndex = 0,
+}: {
+  text: string;
+  className?: string;
+  step?: number;
+  // Phase offset (in letters) so a wave can continue across separate
+  // RainbowText spans, e.g. "by " + a hoverable "yonka".
+  startIndex?: number;
+}) {
+  let letter = startIndex;
+  return (
+    <>
+      {[...text].map((ch, i) =>
+        ch === ' ' ? (
+          <span key={i}>&nbsp;</span>
+        ) : (
+          <span
+            key={i}
+            className={`rainbow-text ${className}`}
+            style={{ animationDelay: `${-(letter++) * step}s` }}
+          >
+            {ch}
+          </span>
+        ),
+      )}
+    </>
   );
 }
 
@@ -874,10 +923,10 @@ function Header() {
 
   return (
     <>
-      <header className="relative flex shrink-0 items-center gap-2 border-b border-neutral-200 bg-white px-3 py-2 sm:gap-3 sm:px-5 sm:py-3 dark:border-neutral-800 dark:bg-neutral-900">
+      <header className="enter relative flex shrink-0 items-center gap-2 border-b border-neutral-200 bg-white px-3 py-2 sm:gap-3 sm:px-5 sm:py-3 dark:border-neutral-800 dark:bg-neutral-900">
         <span
           aria-hidden
-          className="rainbow-line absolute inset-x-0 top-0 h-[3px]"
+          className="rainbow-line absolute inset-x-0 top-0 h-[5px]"
         />
         <ElastixLogo className="elastix-logo-animated h-6 w-6 sm:h-7 sm:w-7" />
         <div className="flex items-baseline gap-1.5">

@@ -104,9 +104,9 @@ function EmptyState({ hint, over }: { hint: boolean; over: boolean }) {
     <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-neutral-300 bg-white px-6 py-12 text-center dark:border-neutral-700 dark:bg-neutral-900">
       <div
         className={[
-          'flex h-16 w-16 items-center justify-center rounded-full border-2',
+          'echo-ring flex h-16 w-16 items-center justify-center rounded-full border-2',
           over
-            ? 'border-blue-500 bg-blue-100 pulse-ring dark:bg-blue-900'
+            ? 'border-blue-500 bg-blue-100 dark:bg-blue-900'
             : hint
             ? 'border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-950'
             : 'border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800',
