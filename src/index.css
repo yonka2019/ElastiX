@@ -69,3 +69,107 @@ html.theme-transition *::after {
     border-color 220ms ease, fill 220ms ease, stroke 220ms ease,
     box-shadow 220ms ease !important;
 }
+
+/* ─── Theme tints ───────────────────────────────────────────────────────
+   Selected in Settings; useTheme() puts the active tint on
+   <html data-tint="…">. Each tint recolours the NEUTRAL surfaces only —
+   accents (mode colors, emerald/blue buttons) keep their meaning.
+   Specificity: html[data-tint] .cls (0,2,1) beats Tailwind's plain utility
+   (0,1,0) and html.dark[data-tint] .dark\:cls beats .dark .dark\:cls. */
+
+/* Mist — cool blue-gray light */
+html[data-tint='mist'] body { background: #e9eff6; }
+html[data-tint='mist'] .bg-white { background-color: #f4f8fc; }
+html[data-tint='mist'] .bg-neutral-50 { background-color: #e9eff6; }
+html[data-tint='mist'] .bg-neutral-100 { background-color: #dde7f1; }
+html[data-tint='mist'] .bg-neutral-200 { background-color: #cfdcea; }
+html[data-tint='mist'] .border-neutral-200 { border-color: #cdd9e7; }
+html[data-tint='mist'] .border-neutral-300 { border-color: #b4c6da; }
+html[data-tint='mist'] .hover\:bg-neutral-50:hover { background-color: #e9eff6; }
+html[data-tint='mist'] .hover\:bg-neutral-100:hover { background-color: #dde7f1; }
+
+/* Sand — warm cream light */
+html[data-tint='sand'] body { background: #f1ebdd; }
+html[data-tint='sand'] .bg-white { background-color: #faf5ea; }
+html[data-tint='sand'] .bg-neutral-50 { background-color: #f1ebdd; }
+html[data-tint='sand'] .bg-neutral-100 { background-color: #e9e0ca; }
+html[data-tint='sand'] .bg-neutral-200 { background-color: #ded2b4; }
+html[data-tint='sand'] .border-neutral-200 { border-color: #ded2b4; }
+html[data-tint='sand'] .border-neutral-300 { border-color: #c9bb9a; }
+html[data-tint='sand'] .hover\:bg-neutral-50:hover { background-color: #f1ebdd; }
+html[data-tint='sand'] .hover\:bg-neutral-100:hover { background-color: #e9e0ca; }
+
+/* Sage — soft green light */
+html[data-tint='sage'] body { background: #e9f1e9; }
+html[data-tint='sage'] .bg-white { background-color: #f3f9f3; }
+html[data-tint='sage'] .bg-neutral-50 { background-color: #e9f1e9; }
+html[data-tint='sage'] .bg-neutral-100 { background-color: #dce9dc; }
+html[data-tint='sage'] .bg-neutral-200 { background-color: #cbdfcb; }
+html[data-tint='sage'] .border-neutral-200 { border-color: #cbdfcb; }
+html[data-tint='sage'] .border-neutral-300 { border-color: #adcbad; }
+html[data-tint='sage'] .hover\:bg-neutral-50:hover { background-color: #e9f1e9; }
+html[data-tint='sage'] .hover\:bg-neutral-100:hover { background-color: #dce9dc; }
+
+/* Midnight — deep blue dark */
+html.dark[data-tint='midnight'] body { background: #060b18; }
+html.dark[data-tint='midnight'] .dark\:bg-neutral-900 { background-color: #0c1426; }
+html.dark[data-tint='midnight'] .dark\:bg-neutral-950 { background-color: #060b18; }
+html.dark[data-tint='midnight'] .dark\:bg-neutral-800 { background-color: #15203a; }
+html.dark[data-tint='midnight'] .dark\:border-neutral-800 { border-color: #1b2a48; }
+html.dark[data-tint='midnight'] .dark\:border-neutral-700 { border-color: #283d63; }
+html.dark[data-tint='midnight'] .dark\:hover\:bg-neutral-800:hover { background-color: #1a2745; }
+
+/* Forest — deep green dark */
+html.dark[data-tint='forest'] body { background: #07120c; }
+html.dark[data-tint='forest'] .dark\:bg-neutral-900 { background-color: #0c1d13; }
+html.dark[data-tint='forest'] .dark\:bg-neutral-950 { background-color: #07120c; }
+html.dark[data-tint='forest'] .dark\:bg-neutral-800 { background-color: #13291b; }
+html.dark[data-tint='forest'] .dark\:border-neutral-800 { border-color: #1b3625; }
+html.dark[data-tint='forest'] .dark\:border-neutral-700 { border-color: #2a4d35; }
+html.dark[data-tint='forest'] .dark\:hover\:bg-neutral-800:hover { background-color: #18301f; }
+
+/* Plum — deep purple dark */
+html.dark[data-tint='plum'] body { background: #0e0816; }
+html.dark[data-tint='plum'] .dark\:bg-neutral-900 { background-color: #180f26; }
+html.dark[data-tint='plum'] .dark\:bg-neutral-950 { background-color: #0e0816; }
+html.dark[data-tint='plum'] .dark\:bg-neutral-800 { background-color: #241740; }
+html.dark[data-tint='plum'] .dark\:border-neutral-800 { border-color: #2d1d4e; }
+html.dark[data-tint='plum'] .dark\:border-neutral-700 { border-color: #41306b; }
+html.dark[data-tint='plum'] .dark\:hover\:bg-neutral-800:hover { background-color: #2a1b4a; }
+
+/* ─── ElastiX logo — elastic bars ───────────────────────────────────────
+   The three bars gently stretch/relax in a staggered loop; hovering the
+   logo snaps them into a fast wobble. transform-box makes each rect scale
+   around its own box rather than the SVG origin. */
+@keyframes elastix-stretch {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(0.78); }
+}
+/* Deliberately NOT gated behind prefers-reduced-motion: Windows with
+   "Animation effects" off reports reduce, but these decorative animations
+   were explicitly requested. */
+.elastix-logo-animated .elastix-bar {
+  transform-box: fill-box;
+  animation: elastix-stretch 3.2s ease-in-out infinite;
+}
+.elastix-logo-animated .elastix-bar-1 { transform-origin: left center; }
+.elastix-logo-animated .elastix-bar-2 { transform-origin: center; animation-delay: 0.35s; }
+.elastix-logo-animated .elastix-bar-3 { transform-origin: right center; animation-delay: 0.7s; }
+.elastix-logo-animated:hover .elastix-bar { animation-duration: 0.9s; }
+
+/* ─── Header accent line — flowing gradient ─────────────────────────────
+   The gradient is doubled (last stop = first stop) and the background is
+   200% wide, so sliding the position by one full pattern width loops
+   seamlessly. */
+@keyframes rainbow-flow {
+  /* Decreasing position-x slides the (200%-wide, doubled) gradient pattern
+     visually LEFT-TO-RIGHT; one full pattern width per cycle loops
+     seamlessly. */
+  from { background-position: 200% 0; }
+  to { background-position: 0% 0; }
+}
+.rainbow-line {
+  background-image: linear-gradient(90deg, #10b981, #0ea5e9, #f43f5e, #10b981);
+  background-size: 200% 100%;
+  animation: rainbow-flow 6s linear infinite;
+}

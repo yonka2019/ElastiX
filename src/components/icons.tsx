@@ -24,9 +24,9 @@ export function ElastixLogo({ className = 'h-7 w-7' }: IconProps) {
           <stop offset="1" stopColor="#e11d48" />
         </linearGradient>
       </defs>
-      <rect x="3" y="4.5" width="18" height="3.5" rx="1.75" fill="url(#elastix-must)" />
-      <rect x="5" y="10.25" width="14" height="3.5" rx="1.75" fill="url(#elastix-should)" />
-      <rect x="7" y="16" width="10" height="3.5" rx="1.75" fill="url(#elastix-not)" />
+      <rect className="elastix-bar elastix-bar-1" x="3" y="4.5" width="18" height="3.5" rx="1.75" fill="url(#elastix-must)" />
+      <rect className="elastix-bar elastix-bar-2" x="5" y="10.25" width="14" height="3.5" rx="1.75" fill="url(#elastix-should)" />
+      <rect className="elastix-bar elastix-bar-3" x="7" y="16" width="10" height="3.5" rx="1.75" fill="url(#elastix-not)" />
     </svg>
   );
 }

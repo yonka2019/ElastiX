@@ -20,10 +20,11 @@ import { ElastixLogo, ModeIcon } from './components/icons';
 import { TemplateLibrary } from './components/TemplateLibrary';
 import { Builder } from './components/Builder';
 import { QueryOutput } from './components/QueryOutput';
+import { Settings } from './components/Settings';
+import { CountDocs } from './components/CountDocs';
 import type { BoolMode, ModeBlock } from './types';
 import { MODE_META } from './types';
 import { PreviewProvider } from './utils/preview';
-import { useTheme } from './utils/theme';
 import { buildDiscoverUrl, buildDevToolsUrl } from './utils/kibana';
 
 type PaletteLeafDrag =
@@ -422,6 +423,15 @@ export default function App() {
     //    header) or nest into another block (drop on its body / on an
     //    item inside it).
     if (activeData.kind === 'block') {
+      // Dropping on empty canvas space moves the block to the end of the
+      // list (was a silent no-op — found by the drag-matrix audit).
+      if (overData.kind === 'builder-canvas') {
+        const from = blocks.findIndex((b) => b.id === activeData.blockId);
+        if (from >= 0 && from !== blocks.length - 1) {
+          reorderBlocks(from, blocks.length - 1);
+        }
+        return;
+      }
       if (overData.kind === 'block') {
         const from = blocks.findIndex((b) => b.id === activeData.blockId);
         const to = blocks.findIndex((b) => b.id === overData.blockId);
@@ -801,7 +811,6 @@ function Header() {
   const blocks = useStore((s) => s.blocks);
   const config = useStore((s) => s.config);
   const replaceBlocks = useStore((s) => s.replaceBlocks);
-  const { theme, toggle } = useTheme();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [ioError, setIoError] = useState<string | null>(null);
 
@@ -868,59 +877,13 @@ function Header() {
       <header className="relative flex shrink-0 items-center gap-2 border-b border-neutral-200 bg-white px-3 py-2 sm:gap-3 sm:px-5 sm:py-3 dark:border-neutral-800 dark:bg-neutral-900">
         <span
           aria-hidden
-          className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-emerald-500 via-sky-500 to-rose-500"
+          className="rainbow-line absolute inset-x-0 top-0 h-[3px]"
         />
-        <ElastixLogo className="h-6 w-6 sm:h-7 sm:w-7" />
+        <ElastixLogo className="elastix-logo-animated h-6 w-6 sm:h-7 sm:w-7" />
         <div className="flex items-baseline gap-1.5">
           <span className="text-base font-semibold text-neutral-900 dark:text-neutral-100">ElastiX</span>
         </div>
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-          <button
-            onClick={(e) => toggle({ x: e.clientX, y: e.clientY })}
-            className="inline-flex items-center justify-center rounded-md border border-neutral-200 bg-white p-1.5 text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            aria-label="Toggle theme"
-          >
-            {/* Sun and moon are stacked. The visible one is upright at full
-                opacity; the other is rotated, shrunk, and faded out. Toggling
-                theme swaps which is which — Tailwind's transition utilities
-                tween rotate/scale/opacity simultaneously for a clean morph. */}
-            <span className="relative block h-4 w-4">
-              <svg
-                viewBox="0 0 24 24"
-                className={`absolute inset-0 h-4 w-4 motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out ${
-                  theme === 'dark'
-                    ? 'rotate-0 scale-100 opacity-100'
-                    : '-rotate-90 scale-50 opacity-0'
-                }`}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-              >
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-              </svg>
-              <svg
-                viewBox="0 0 24 24"
-                className={`absolute inset-0 h-4 w-4 motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out ${
-                  theme === 'light'
-                    ? 'rotate-0 scale-100 opacity-100'
-                    : 'rotate-90 scale-50 opacity-0'
-                }`}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-              >
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            </span>
-          </button>
           <button
             onClick={exportState}
             disabled={blocks.length === 0}
@@ -957,6 +920,9 @@ function Header() {
               e.target.value = '';
             }}
           />
+          {/* Divider between builder-state I/O and the Elastic actions. */}
+          <span aria-hidden className="mx-0.5 h-5 w-px bg-neutral-200 dark:bg-neutral-700" />
+          <CountDocs />
           <button
             onClick={openInKibana}
             disabled={!config.kibanaUrl}
@@ -977,6 +943,7 @@ function Header() {
             </svg>
             <span className="hidden sm:inline">Open in Kibana</span>
           </button>
+          <Settings />
         </div>
       </header>
       {ioError && (

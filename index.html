@@ -26,6 +26,8 @@
           var v = localStorage.getItem('elastix-theme');
           var dark = v ? v === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
           if (dark) document.documentElement.classList.add('dark');
+          var tint = localStorage.getItem(dark ? 'elastix-tint-dark' : 'elastix-tint-light');
+          if (tint && tint !== 'classic') document.documentElement.setAttribute('data-tint', tint);
         } catch (e) {}
       })();
     </script>

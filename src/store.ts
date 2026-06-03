@@ -50,6 +50,12 @@ type StoreState = {
   config: ElastixConfig;
   loadConfig: () => Promise<void>;
 
+  // Auto doc-count preference. Shared by the QueryOutput toolbar switch and
+  // the Settings panel; persisted manually to localStorage (partialize only
+  // persists blocks).
+  autoCount: boolean;
+  setAutoCount: (v: boolean) => void;
+
   addBlock: (mode: BoolMode, atIndex?: number) => string;
   addNestedBlock: (parentBlockId: string, mode: BoolMode, atIndex?: number) => string | null;
   removeBlock: (blockId: string) => void;
@@ -201,6 +207,16 @@ function isDescendantBlock(item: BuilderItem, blockId: string): boolean {
   return item.source.block.items.some((c) => isDescendantBlock(c, blockId));
 }
 
+const AUTO_COUNT_KEY = 'elastix-auto-count';
+
+function readStoredAutoCount(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(AUTO_COUNT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 export const useStore = create<StoreState>()(
   persist(
     (set) => ({
@@ -210,6 +226,16 @@ export const useStore = create<StoreState>()(
       blocks: [],
       pendingEditId: null,
       config: { kibanaUrl: '', indexPattern: '*', dataViewId: '', ready: false },
+      autoCount: readStoredAutoCount(),
+
+      setAutoCount: (v) => {
+        try {
+          localStorage.setItem(AUTO_COUNT_KEY, v ? '1' : '0');
+        } catch {
+          /* ignore */
+        }
+        set({ autoCount: v });
+      },
 
       loadConfig: async () => {
         try {
@@ -298,6 +324,11 @@ export const useStore = create<StoreState>()(
       reorderBlocks: (fromIndex, toIndex) => {
         set((s) => {
           if (fromIndex === toIndex) return s;
+          // Out-of-range indices must be a no-op: splice(badFrom, 1) removes
+          // nothing and splice(to, 0, undefined) would insert a hole that
+          // corrupts the tree (found by fuzzing).
+          const max = s.blocks.length - 1;
+          if (fromIndex < 0 || fromIndex > max || toIndex < 0 || toIndex > max) return s;
           const arr = [...s.blocks];
           const [moved] = arr.splice(fromIndex, 1);
           arr.splice(toIndex, 0, moved);
@@ -760,6 +791,9 @@ export const useStore = create<StoreState>()(
         set((s) => ({
           blocks: updateBlockById(s.blocks, blockId, (b) => {
             if (fromIndex === toIndex) return b;
+            // Same out-of-range guard as reorderBlocks — see comment there.
+            const max = b.items.length - 1;
+            if (fromIndex < 0 || fromIndex > max || toIndex < 0 || toIndex > max) return b;
             const arr = [...b.items];
             const [moved] = arr.splice(fromIndex, 1);
             arr.splice(toIndex, 0, moved);

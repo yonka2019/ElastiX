@@ -4,35 +4,12 @@ import { MODE_META, MODE_ORDER } from '../types';
 import { JsonTree } from './JsonTree';
 import { parseQueryToBlocks } from '../utils/importQuery';
 
-type CountState =
-  | { kind: 'idle' }
-  | { kind: 'loading' }
-  | { kind: 'ok'; count: number; at: number }
-  | { kind: 'err'; message: string };
-
-// Normalise an error payload to a human string. Elasticsearch returns
-// `{ error: { type, reason, root_cause } }`; our middleware returns
-// `{ error: "message" }`. Either way we want readable text, never `[object
-// Object]` (which would also crash React if rendered as a child).
-function errorMessage(error: unknown): string {
-  if (!error) return '';
-  if (typeof error === 'string') return error;
-  if (typeof error === 'object') {
-    const e = error as { reason?: string; type?: string };
-    if (e.reason) return e.type ? `${e.type}: ${e.reason}` : e.reason;
-    return JSON.stringify(error);
-  }
-  return String(error);
-}
-
 export function QueryOutput() {
   const templates = useStore((s) => s.templates);
   const blocks = useStore((s) => s.blocks);
-  const config = useStore((s) => s.config);
   const replaceBlocks = useStore((s) => s.replaceBlocks);
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [count, setCount] = useState<CountState>({ kind: 'idle' });
   const [importError, setImportError] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -86,41 +63,6 @@ export function QueryOutput() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-
-  const runCount = async () => {
-    setCount({ kind: 'loading' });
-    try {
-      const inner = (built as { query?: Record<string, unknown> }).query ?? { match_all: {} };
-      const res = await fetch('/api/count', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ query: inner }),
-      });
-      const rawBody = await res.text();
-      let data: { count?: number; error?: unknown } = {};
-      try {
-        data = rawBody ? (JSON.parse(rawBody) as typeof data) : {};
-      } catch {
-        // Non-JSON response — e.g. an HTML error page from a proxy, or no
-        // backend at all (static build / `vite preview` without server.js).
-        setCount({ kind: 'err', message: rawBody.slice(0, 200) || `HTTP ${res.status}` });
-        return;
-      }
-      if (!res.ok) {
-        setCount({ kind: 'err', message: errorMessage(data.error) || `HTTP ${res.status}` });
-        return;
-      }
-      if (typeof data.count !== 'number') {
-        setCount({ kind: 'err', message: 'Unexpected response (no count)' });
-        return;
-      }
-      setCount({ kind: 'ok', count: data.count, at: Date.now() });
-    } catch (err) {
-      setCount({ kind: 'err', message: (err as Error).message });
-    }
-  };
-
-  const formatCount = (n: number) => n.toLocaleString();
 
   return (
     <section
@@ -192,54 +134,6 @@ export function QueryOutput() {
         )}
 
         <div className="ml-auto flex items-center gap-2">
-          {count.kind === 'ok' && (
-            <span
-              className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-              title={`Matched on index pattern ${config.indexPattern}`}
-            >
-              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden>
-                <path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h10v2H4z" />
-              </svg>
-              {formatCount(count.count)} docs
-            </span>
-          )}
-          {count.kind === 'err' && (
-            <span
-              className="max-w-[260px] truncate rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 font-mono text-[11px] text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300"
-              title={count.message}
-            >
-              count failed: {count.message}
-            </span>
-          )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              void runCount();
-            }}
-            disabled={!config.ready || count.kind === 'loading'}
-            className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-50 disabled:text-neutral-400 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 dark:hover:border-emerald-700 dark:hover:bg-emerald-900 dark:disabled:border-neutral-700 dark:disabled:bg-neutral-800 dark:disabled:text-neutral-500"
-            title={
-              config.ready
-                ? `Count matching docs on ${config.indexPattern}`
-                : 'Set ELASTIC_URL + creds in .env to enable'
-            }
-          >
-            {count.kind === 'loading' ? (
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 animate-spin" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M9 7h11" />
-                <path d="M9 12h11" />
-                <path d="M9 17h11" />
-                <circle cx="4.5" cy="7" r="1" />
-                <circle cx="4.5" cy="12" r="1" />
-                <circle cx="4.5" cy="17" r="1" />
-              </svg>
-            )}
-            <span className="hidden sm:inline">{count.kind === 'loading' ? 'Counting…' : 'Count docs'}</span>
-          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
