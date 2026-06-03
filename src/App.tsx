@@ -671,12 +671,17 @@ export default function App() {
           </div>
         );
       }
-      let name = 'unknown';
+      let name: string;
       if (item.source.kind === 'template') {
         const { templateId } = item.source;
         name = templates.find((t) => t.id === templateId)?.name ?? 'unknown';
       } else if (item.source.kind === 'custom') {
         name = item.source.name;
+      } else if (item.source.kind === 'timestamp') {
+        name = item.source.title || `${item.source.field} range`;
+      } else {
+        // term / match / terms / exists — same label fallback as BuilderRow.
+        name = item.source.title || item.source.field || '(unset)';
       }
       return (
         <div className="flex w-[420px] items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 py-2.5 shadow-xl ring-2 ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:ring-blue-800">

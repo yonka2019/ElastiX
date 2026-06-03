@@ -9,6 +9,12 @@ COPY public ./public
 COPY src ./src
 COPY server ./server
 COPY server.js ./server.js
+# Stamp the release tag (e.g. v1.4 from the on-tag workflow) into
+# package.json so the UI version badge matches the image tag.
+# `npm pkg set` (not `npm version`) because tags here aren't full semver
+# (v1.4, v2) and npm version rejects those. No-op for a plain `docker build`.
+ARG APP_VERSION
+RUN if [ -n "$APP_VERSION" ]; then npm pkg set version="${APP_VERSION#v}"; fi
 RUN npm run build
 
 FROM node:20-alpine AS runtime
