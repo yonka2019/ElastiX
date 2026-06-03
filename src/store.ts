@@ -94,12 +94,6 @@ type StoreState = {
     payload: { field: string },
     atIndex?: number
   ) => string | null;
-  addWildcardToBlock: (
-    blockId: string,
-    payload: { field: string; value: string },
-    atIndex?: number
-  ) => string | null;
-  updateWildcardItem: (instanceId: string, patch: { title?: string; field?: string; value?: string }) => void;
   addNestedBlockTopLevel: (atIndex?: number) => string;
   addNestedBlockInside: (parentBlockId: string, atIndex?: number) => string | null;
   setBlockPath: (blockId: string, path: string) => void;
@@ -448,22 +442,6 @@ export const useStore = create<StoreState>()(
         return added ? instanceId : null;
       },
 
-      addWildcardToBlock: (blockId, { field, value }, atIndex) => {
-        const instanceId = uuidv4();
-        let added = false;
-        set((s) => ({
-          blocks: updateBlockById(s.blocks, blockId, (b) => {
-            added = true;
-            const item: BuilderItem = {
-              instanceId,
-              source: { kind: 'wildcard', field, value },
-            };
-            return { ...b, items: insertAt(b.items, item, atIndex) };
-          }),
-        }));
-        return added ? instanceId : null;
-      },
-
       addNestedBlockTopLevel: (atIndex) => {
         const id = `blk-${uuidv4().slice(0, 8)}`;
         set((s) => ({
@@ -503,32 +481,6 @@ export const useStore = create<StoreState>()(
             return { ...b, nested: { path } };
           }),
         }));
-      },
-
-      updateWildcardItem: (instanceId, patch) => {
-        set((s) => {
-          const loc = locateItem(s.blocks, instanceId);
-          if (!loc) return s;
-          return {
-            blocks: updateBlockById(s.blocks, loc.parentBlockId, (b) => {
-              const idx = b.items.findIndex((x) => x.instanceId === instanceId);
-              if (idx < 0) return b;
-              const existing = b.items[idx];
-              if (existing.source.kind !== 'wildcard') return b;
-              const items = [...b.items];
-              items[idx] = {
-                ...existing,
-                source: {
-                  kind: 'wildcard',
-                  title: patch.title !== undefined ? patch.title || undefined : existing.source.title,
-                  field: patch.field ?? existing.source.field,
-                  value: patch.value ?? existing.source.value,
-                },
-              };
-              return { ...b, items };
-            }),
-          };
-        });
       },
 
       updateCustomItem: (instanceId, patch) => {
@@ -831,7 +783,7 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: 'eck-template-builder-v2',
-      version: 6,
+      version: 7,
       // Only blocks survive a reload; templates are loaded from MongoDB on
       // mount via loadTemplates().
       partialize: (state) => ({ blocks: state.blocks }),
@@ -863,7 +815,7 @@ export const useStore = create<StoreState>()(
 
         // v2 → v3: bucket the flat builder array by mode.
         if (version < 3 && Array.isArray(state.builder)) {
-          const grouped: BuilderSections = { must: [], should: [], must_not: [] };
+          const grouped: BuilderSections = { must: [], filter: [], should: [], must_not: [] };
           for (const raw of state.builder as unknown[]) {
             const b = raw as { instanceId?: string; mode?: BoolMode; source?: BuilderItem['source'] };
             if (!b.source || !b.instanceId) continue;
@@ -920,6 +872,41 @@ export const useStore = create<StoreState>()(
           state.blocks = stripNested(state.blocks);
         }
 
+        // v6 → v7: the dedicated 'wildcard' leaf kind was removed. Convert
+        // persisted wildcard rows into equivalent custom rows so the emitted
+        // query stays identical.
+        if (version < 7 && Array.isArray(state.blocks)) {
+          type AnyItem = { source?: { kind?: string; title?: string; field?: string; value?: string } };
+          const convertWildcards = (blocks: ModeBlock[]): ModeBlock[] =>
+            blocks.map((b) => ({
+              ...b,
+              items: b.items.map((it) => {
+                const src = (it as AnyItem).source;
+                if (src?.kind === 'wildcard') {
+                  const field = src.field ?? '';
+                  const value = src.value ?? '';
+                  return {
+                    ...it,
+                    source: {
+                      kind: 'custom' as const,
+                      name: src.title || `wildcard: ${field || '?'}`,
+                      query: { wildcard: { [field]: value } },
+                    },
+                  };
+                }
+                if (src?.kind === 'bool') {
+                  const inner = (it as { source: { kind: 'bool'; block: ModeBlock } }).source.block;
+                  return {
+                    ...it,
+                    source: { kind: 'bool' as const, block: convertWildcards([inner])[0] },
+                  };
+                }
+                return it;
+              }),
+            }));
+          state.blocks = convertWildcards(state.blocks);
+        }
+
         return state as StoreState;
       },
     }
@@ -938,7 +925,7 @@ export function totalItemCount(blocks: ModeBlock[]): number {
 }
 
 export function modeOccurrences(blocks: ModeBlock[]): Record<BoolMode, number> {
-  const counts: Record<BoolMode, number> = { must: 0, should: 0, must_not: 0 };
+  const counts: Record<BoolMode, number> = { must: 0, filter: 0, should: 0, must_not: 0 };
   const walk = (bs: ModeBlock[]) => {
     for (const b of bs) {
       for (const it of b.items) {
@@ -972,10 +959,6 @@ function resolveItemWithMap(
     if (!item.source.field.trim() || !item.source.value.trim()) return undefined;
     return { match: { [item.source.field]: item.source.value } };
   }
-  if (item.source.kind === 'wildcard') {
-    if (!item.source.field.trim() || !item.source.value.trim()) return undefined;
-    return { wildcard: { [item.source.field]: item.source.value } };
-  }
   if (item.source.kind === 'terms') {
     const cleaned = item.source.values.map((v) => v.trim()).filter(Boolean);
     if (!item.source.field.trim() || cleaned.length === 0) return undefined;
@@ -1000,6 +983,7 @@ function makeBoolInnerWithMap(
 ): Record<string, unknown> {
   const buckets: Record<BoolMode, Array<Record<string, unknown>>> = {
     must: [],
+    filter: [],
     should: [],
     must_not: [],
   };

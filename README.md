@@ -4,7 +4,7 @@
 
 ![Alt text](elastix_img.png)
 
-A visual builder for Elasticsearch bool queries. Drag-and-drop must / should / must_not blocks, drop templates or typed clauses inside them, peek the generated JSON, optionally count matching docs against a live cluster, or jump straight into Kibana Dev Tools with the query pre-loaded.
+A visual builder for Elasticsearch bool queries. Drag-and-drop must / filter / should / must_not blocks, drop templates or typed clauses inside them, peek the generated JSON, optionally count matching docs against a live cluster, or jump straight into Kibana Dev Tools with the query pre-loaded.
 
 Designed to run on fully offline machines — no CDN dependencies at runtime.
 
@@ -54,7 +54,7 @@ src/
   index.css                     Tailwind base + scrollbar + a few keyframes
   components/
     Builder.tsx                 main canvas area
-    BlockCard.tsx               a must / should / must_not / nested block
+    BlockCard.tsx               a must / filter / should / must_not / nested block
     BuilderRow.tsx              one leaf row inside a block
     ModeBlockPalette.tsx        left sidebar — block + clause cards
     TemplateLibrary.tsx         right sidebar — searchable templates
@@ -77,9 +77,9 @@ public/
 
 ## Features
 
-- **Block-based bool builder** — must, should, must_not. Drag to reorder, drag onto another block's body to nest.
-- **Nested queries** — a 4th block type with an editable `path:` that wraps its items in an ES `nested` clause.
-- **Leaf clauses** — custom (free JSON), timestamp (range), term, terms, exists, match, wildcard. Each has an optional title.
+- **Block-based bool builder** — must, filter, should, must_not. Drag to reorder, drag onto another block's body to nest.
+- **Nested queries** — a 5th block type with an editable `path:` that wraps its items in an ES `nested` clause.
+- **Leaf clauses** — custom (free JSON), timestamp (range), term, terms, exists, match. Each has an optional title.
 - **Templates** — pulled from `public/templates.json` (or a ConfigMap mounted at `/etc/templates/templates.json` in K8s). Searchable. Eye button shows the JSON.
 - **Generated Query view** — collapsible JSON tree with per-node toggles; copy + count docs + open-in-Kibana.
 - **Dark mode** — header toggle, follows system preference until you choose, persists in localStorage.

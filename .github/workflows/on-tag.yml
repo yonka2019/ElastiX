@@ -27,7 +27,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: myapp:${{ steps.tag.outputs.tag }}
+          tags: elastix:${{ steps.tag.outputs.tag }}
           outputs: type=docker,dest=/tmp/elastix-${{ steps.tag.outputs.tag }}.tar
 
       - name: Upload Docker image as artifact

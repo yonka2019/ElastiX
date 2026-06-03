@@ -81,17 +81,6 @@ function parseClause(clause: unknown, counter: Counter): BuilderItem | null {
     };
   }
 
-  if (kind === 'wildcard' && isObject(body)) {
-    const f = pickField(body);
-    if (!f) return customItem(clause, counter);
-    const value = asString(f.value);
-    if (value === undefined) return customItem(clause, counter);
-    return {
-      instanceId: uuidv4(),
-      source: { kind: 'wildcard', field: f.field, value },
-    };
-  }
-
   if (kind === 'terms' && isObject(body)) {
     const f = pickField(body);
     if (!f || !Array.isArray(f.value)) return customItem(clause, counter);
@@ -144,11 +133,11 @@ function parseClause(clause: unknown, counter: Counter): BuilderItem | null {
   return customItem(clause, counter);
 }
 
-// Read a `{ bool: { must, should, must_not, filter } }` (or a bare inner
+// Read a `{ bool: { must, filter, should, must_not } }` (or a bare inner
 // bool body when stripping a wrapper) and pack it into ONE ModeBlock.
 // The data model only allows one mode per block, so a multi-mode bool can
 // not be represented as a single block — return null and let the caller
-// fall back to custom. `filter` is merged into `must`.
+// fall back to custom.
 function parseSingleBoolBlock(
   full: Q,
   counter: Counter,
@@ -158,11 +147,10 @@ function parseSingleBoolBlock(
   if (!isObject(innerBool)) return null;
 
   const buckets: { mode: BoolMode; clauses: unknown[] }[] = [];
-  const must = [
-    ...(Array.isArray(innerBool.must) ? innerBool.must : []),
-    ...(Array.isArray(innerBool.filter) ? innerBool.filter : []),
-  ];
-  if (must.length) buckets.push({ mode: 'must', clauses: must });
+  if (Array.isArray(innerBool.must) && innerBool.must.length)
+    buckets.push({ mode: 'must', clauses: innerBool.must });
+  if (Array.isArray(innerBool.filter) && innerBool.filter.length)
+    buckets.push({ mode: 'filter', clauses: innerBool.filter });
   if (Array.isArray(innerBool.should) && innerBool.should.length)
     buckets.push({ mode: 'should', clauses: innerBool.should });
   if (Array.isArray(innerBool.must_not) && innerBool.must_not.length)
@@ -228,11 +216,8 @@ export function parseQueryToBlocks(input: unknown): ImportResult {
         items,
       });
     };
-    const mustClauses = [
-      ...(Array.isArray(innerBool.must) ? innerBool.must : []),
-      ...(Array.isArray(innerBool.filter) ? innerBool.filter : []),
-    ];
-    push('must', mustClauses);
+    push('must', innerBool.must);
+    push('filter', innerBool.filter);
     push('should', innerBool.should);
     push('must_not', innerBool.must_not);
     return { blocks, empty: blocks.length === 0 };

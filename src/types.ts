@@ -1,6 +1,6 @@
-export type BoolMode = 'must' | 'should' | 'must_not';
+export type BoolMode = 'must' | 'filter' | 'should' | 'must_not';
 
-export const MODE_ORDER: BoolMode[] = ['must', 'should', 'must_not'];
+export const MODE_ORDER: BoolMode[] = ['must', 'filter', 'should', 'must_not'];
 
 export const MODE_META: Record<
   BoolMode,
@@ -41,6 +41,23 @@ export const MODE_META: Record<
     headerText: 'text-emerald-900 dark:text-emerald-100',
     headerSolid: 'bg-gradient-to-r from-emerald-600 to-emerald-500',
     blockShadow: 'shadow-emerald-200/40 dark:shadow-emerald-900/30',
+  },
+  filter: {
+    label: 'filter',
+    word: 'FILTER',
+    sentence: 'document must match all of these — no scoring, cacheable',
+    dot: 'bg-violet-500',
+    chip: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-800',
+    bar: 'bg-violet-500',
+    barSub: 'bg-violet-300 dark:bg-violet-700',
+    softBg: 'bg-violet-50/60 dark:bg-violet-950/40',
+    softBgStrong: 'bg-violet-100/60 dark:bg-violet-900/40',
+    softBorder: 'border-violet-200 dark:border-violet-800',
+    softRing: 'ring-violet-300 dark:ring-violet-700',
+    accentText: 'text-violet-700 dark:text-violet-300',
+    headerText: 'text-violet-900 dark:text-violet-100',
+    headerSolid: 'bg-gradient-to-r from-violet-600 to-violet-500',
+    blockShadow: 'shadow-violet-200/40 dark:shadow-violet-900/30',
   },
   should: {
     label: 'should',
@@ -110,7 +127,6 @@ export type BuilderSource =
   | { kind: 'term'; title?: string; field: string; value: string }
   | { kind: 'match'; title?: string; field: string; value: string }
   | { kind: 'terms'; title?: string; field: string; values: string[] }
-  | { kind: 'wildcard'; title?: string; field: string; value: string }
   | { kind: 'exists'; title?: string; field: string }
   | { kind: 'bool'; block: ModeBlock };
 
@@ -121,7 +137,7 @@ export type BuilderItem = {
 
 export type BuilderSections = Record<BoolMode, BuilderItem[]>;
 
-export const emptySections = (): BuilderSections => ({ must: [], should: [], must_not: [] });
+export const emptySections = (): BuilderSections => ({ must: [], filter: [], should: [], must_not: [] });
 
 export type ModeBlock = {
   id: string;

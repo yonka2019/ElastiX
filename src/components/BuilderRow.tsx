@@ -11,7 +11,6 @@ import { TermForm } from './TermForm';
 import { MatchForm } from './MatchForm';
 import { TermsForm } from './TermsForm';
 import { ExistsForm } from './ExistsForm';
-import { WildcardForm } from './WildcardForm';
 
 type Props = {
   // Leaf items only (template/custom/timestamp/term/terms/exists). Bool items
@@ -35,7 +34,6 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
   const updateMatchItem = useStore((s) => s.updateMatchItem);
   const updateTermsItem = useStore((s) => s.updateTermsItem);
   const updateExistsItem = useStore((s) => s.updateExistsItem);
-  const updateWildcardItem = useStore((s) => s.updateWildcardItem);
   const pendingEditId = useStore((s) => s.pendingEditId);
   const { open: openPreview } = usePreview();
   const setPendingEditId = useStore((s) => s.setPendingEditId);
@@ -136,23 +134,6 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
       </div>
     );
   }
-  if (editing && item.source.kind === 'wildcard') {
-    return (
-      <div ref={setNodeRef} style={style} className="drop-in">
-        <WildcardForm
-          sectionMode={sectionMode}
-          initialTitle={item.source.title}
-          initialField={item.source.field}
-          initialValue={item.source.value}
-          onSubmit={(patch) => {
-            updateWildcardItem(item.instanceId, patch);
-            setEditing(false);
-          }}
-          onCancel={() => setEditing(false)}
-        />
-      </div>
-    );
-  }
   if (editing && item.source.kind === 'terms') {
     return (
       <div ref={setNodeRef} style={style} className="drop-in">
@@ -193,11 +174,9 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
   const isTemplate = item.source.kind === 'template';
   const isTerm = item.source.kind === 'term';
   const isMatch = item.source.kind === 'match';
-  const isWildcard = item.source.kind === 'wildcard';
   const isTerms = item.source.kind === 'terms';
   const isExists = item.source.kind === 'exists';
-  const editable =
-    isCustom || isTimestamp || isTerm || isMatch || isWildcard || isTerms || isExists;
+  const editable = isCustom || isTimestamp || isTerm || isMatch || isTerms || isExists;
 
   let label: string;
   let description: string | undefined;
@@ -239,10 +218,6 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
     label = item.source.title || item.source.field || '(unset)';
     description = item.source.value ? `${item.source.field || '?'} ~ ${item.source.value}` : 'no value';
     queryPreview = JSON.stringify({ match: { [item.source.field || '_field']: item.source.value } });
-  } else if (item.source.kind === 'wildcard') {
-    label = item.source.title || item.source.field || '(unset)';
-    description = item.source.value ? `${item.source.field || '?'} ~ ${item.source.value}` : 'no pattern';
-    queryPreview = JSON.stringify({ wildcard: { [item.source.field || '_field']: item.source.value } });
   } else if (item.source.kind === 'terms') {
     label = item.source.title || item.source.field || '(unset)';
     description =
@@ -279,8 +254,6 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
     ? 'Configure term'
     : isMatch
     ? 'Configure match'
-    : isWildcard
-    ? 'Configure wildcard'
     : isTerms
     ? 'Configure terms'
     : isExists
@@ -370,19 +343,6 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
                 <path d="M16 16l5 5" />
               </svg>
               match
-            </span>
-          )}
-          {isWildcard && (
-            <span
-              className="inline-flex items-center gap-1 rounded border border-yellow-200 bg-yellow-50 px-1.5 py-0.5 font-mono text-[10px] text-yellow-700 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-300"
-              title="Wildcard pattern query"
-            >
-              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M12 4v16" />
-                <path d="M5.5 7.5l13 9" />
-                <path d="M5.5 16.5l13 -9" />
-              </svg>
-              wildcard
             </span>
           )}
           {isTerms && (

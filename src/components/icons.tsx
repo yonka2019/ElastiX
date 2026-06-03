@@ -50,6 +50,24 @@ export function ModeIcon({ mode, className = 'h-4 w-4' }: { mode: BoolMode } & I
       </svg>
     );
   }
+  if (mode === 'filter') {
+    // Funnel — "narrows without scoring"
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className={className}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-label="filter"
+        role="img"
+      >
+        <path d="M4 5h16l-6.5 7.4v5.1l-3 1.5v-6.6L4 5z" />
+      </svg>
+    );
+  }
   if (mode === 'should') {
     // Star — "boosts score if matched"
     return (
