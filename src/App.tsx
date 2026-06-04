@@ -15,6 +15,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { useStore, locateItemPublic, blockContaining, getItem, buildQuery } from './store';
+import { titleSlug } from './utils/ids';
 import { ModeBlockPalette, LEAF_PALETTE } from './components/ModeBlockPalette';
 import { ElastixLogo, ModeIcon } from './components/icons';
 import { TemplateLibrary } from './components/TemplateLibrary';
@@ -44,12 +45,6 @@ type PaletteLeafDrag =
       kind: 'palette-leaf';
       leafId: 'term';
       leafKind: 'term';
-      payload: { field: string; value: string };
-    }
-  | {
-      kind: 'palette-leaf';
-      leafId: 'match';
-      leafKind: 'match';
       payload: { field: string; value: string };
     }
   | {
@@ -84,7 +79,6 @@ export default function App() {
   const addCustomToBlock = useStore((s) => s.addCustomToBlock);
   const addTimestampToBlock = useStore((s) => s.addTimestampToBlock);
   const addTermToBlock = useStore((s) => s.addTermToBlock);
-  const addMatchToBlock = useStore((s) => s.addMatchToBlock);
   const addTermsToBlock = useStore((s) => s.addTermsToBlock);
   const addExistsToBlock = useStore((s) => s.addExistsToBlock);
   const addNestedBlockTopLevel = useStore((s) => s.addNestedBlockTopLevel);
@@ -464,9 +458,6 @@ export default function App() {
         if (activeData.leafKind === 'term') {
           return addTermToBlock(blockId, activeData.payload, atIndex);
         }
-        if (activeData.leafKind === 'match') {
-          return addMatchToBlock(blockId, activeData.payload, atIndex);
-        }
         if (activeData.leafKind === 'terms') {
           return addTermsToBlock(blockId, activeData.payload, atIndex);
         }
@@ -588,8 +579,6 @@ export default function App() {
       } else if (activeDrag.leafKind === 'custom') {
         detail = activeDrag.payload.name;
       } else if (activeDrag.leafKind === 'term') {
-        detail = activeDrag.payload.field || 'configure…';
-      } else if (activeDrag.leafKind === 'match') {
         detail = activeDrag.payload.field || 'configure…';
       } else if (activeDrag.leafKind === 'terms') {
         detail = activeDrag.payload.field || 'configure…';
@@ -787,13 +776,14 @@ export default function App() {
           aria-hidden
           className="pointer-events-none fixed bottom-2 right-3 z-40 font-mono text-[11px] font-semibold tracking-wider"
         >
-          <RainbowText text="by " />
-          {/* Only "yonka" re-enables pointer events so the rest of the corner
-              stays click-through; hovering it pops a little easter-egg bubble. */}
-          <span className="group pointer-events-auto relative inline-block cursor-default">
-            <RainbowText text="yonka" startIndex={2} />
-            <span className="pointer-events-none absolute bottom-full right-0 mb-2 translate-y-1 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 font-sans text-[11px] font-medium text-white opacity-0 shadow-lg transition-all duration-150 ease-out group-hover:translate-y-0 group-hover:opacity-100 dark:bg-neutral-100 dark:text-neutral-900">
-              lol hi
+          {/* The whole "by yonka" is one hover target and one animated unit —
+              hovering anywhere on it wiggles the full text (see .yonka-corner
+              in index.css). Pointer events are re-enabled only on the text
+              itself so the rest of the corner stays click-through. */}
+          <span className="yonka-corner pointer-events-auto relative inline-block cursor-default">
+            <span className="yonka-word">
+              <RainbowText text="by " />
+              <RainbowText text="yonka" startIndex={2} />
             </span>
           </span>
         </div>
@@ -853,8 +843,17 @@ function Header() {
   const blocks = useStore((s) => s.blocks);
   const config = useStore((s) => s.config);
   const replaceBlocks = useStore((s) => s.replaceBlocks);
+  const queryTitle = useStore((s) => s.queryTitle);
+  const setQueryTitle = useStore((s) => s.setQueryTitle);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [ioError, setIoError] = useState<string | null>(null);
+
+  // Mirror the query title into the browser tab so a named query is
+  // recognisable among multiple ElastiX tabs.
+  useEffect(() => {
+    const t = queryTitle.trim();
+    document.title = t ? `${t} · ElastiX` : 'ElastiX';
+  }, [queryTitle]);
 
   const openInKibana = () => {
     if (!config.kibanaUrl) return;
@@ -874,6 +873,7 @@ function Header() {
       kind: 'elastix-state' as const,
       version: 1,
       exportedAt: new Date().toISOString(),
+      title: queryTitle.trim(),
       blocks,
     };
     const json = JSON.stringify(payload, null, 2);
@@ -881,8 +881,9 @@ function Header() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const date = new Date().toISOString().slice(0, 10);
+    const slug = titleSlug(queryTitle);
     a.href = url;
-    a.download = `elastix-state-${date}.elastix`;
+    a.download = `elastix-state-${slug ? `${slug}-` : ''}${date}.elastix`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -893,7 +894,7 @@ function Header() {
     setIoError(null);
     try {
       const text = await file.text();
-      const data = JSON.parse(text) as { kind?: string; blocks?: unknown };
+      const data = JSON.parse(text) as { kind?: string; blocks?: unknown; title?: unknown };
       if (data.kind !== 'elastix-state') {
         setIoError('File is not an ElastiX state export. To import a raw query JSON, use the Import button next to "Generated Query" → Export.');
         return;
@@ -909,6 +910,9 @@ function Header() {
         if (!ok) return;
       }
       replaceBlocks(data.blocks as ModeBlock[]);
+      // Pre-title exports have no `title` — clear the current one so the
+      // imported state fully replaces what was on screen.
+      setQueryTitle(typeof data.title === 'string' ? data.title : '');
     } catch (err) {
       setIoError(`Failed to import: ${(err as Error).message}`);
     }
@@ -925,6 +929,28 @@ function Header() {
         <div className="flex items-baseline gap-1.5">
           <span className="text-base font-semibold text-neutral-900 dark:text-neutral-100">ElastiX</span>
         </div>
+        <span aria-hidden className="mx-0.5 hidden h-5 w-px bg-neutral-200 sm:inline-block dark:bg-neutral-700" />
+        {/* Whole-query title. Free text, persisted with the builder state,
+            stamped into .elastix exports and download filenames, mirrored
+            into the tab title. A faint resting border marks it as editable;
+            hover deepens it, focus goes blue. */}
+        <input
+          value={queryTitle}
+          onChange={(e) => setQueryTitle(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter commits: the value is already in the store (saved per
+            // keystroke), so "save" = leave edit mode by dropping focus.
+            if (e.key === 'Enter' || e.key === 'Escape') {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
+          }}
+          placeholder="Untitled query"
+          spellCheck={false}
+          aria-label="Query title"
+          title="Name this query — saved with exports and used in download filenames"
+          className="min-w-0 max-w-xs flex-1 rounded-md border border-neutral-200 bg-transparent px-2 py-1 text-sm font-medium text-neutral-800 transition-colors placeholder:text-neutral-400 hover:border-neutral-300 focus:border-blue-300 focus:bg-white focus:outline-none dark:border-neutral-700/60 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:hover:border-neutral-600 dark:focus:border-blue-700 dark:focus:bg-neutral-950"
+        />
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={exportState}

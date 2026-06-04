@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import type { BoolMode, BuilderItem, Template } from '../types';
 import { MODE_META } from '../types';
 import { useStore, resolveItem } from '../store';
+import { termOutputValue, termsOutputValues } from '../utils/terms';
 import { usePreview } from '../utils/preview';
 import { CustomBlockForm } from './CustomBlockForm';
 import { TimestampRangeForm } from './TimestampRangeForm';
@@ -108,6 +109,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
           initialTitle={item.source.title}
           initialField={item.source.field}
           initialValue={item.source.value}
+          initialNumeric={item.source.numeric}
           onSubmit={(patch) => {
             updateTermItem(item.instanceId, patch);
             setEditing(false);
@@ -142,6 +144,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
           initialTitle={item.source.title}
           initialField={item.source.field}
           initialValues={item.source.values}
+          initialNumeric={item.source.numeric}
           onSubmit={(patch) => {
             updateTermsItem(item.instanceId, patch);
             setEditing(false);
@@ -213,7 +216,11 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
   } else if (item.source.kind === 'term') {
     label = item.source.title || item.source.field || '(unset)';
     description = item.source.value ? `${item.source.field || '?'} = ${item.source.value}` : 'no value';
-    queryPreview = JSON.stringify({ term: { [item.source.field || '_field']: item.source.value } });
+    queryPreview = JSON.stringify({
+      term: {
+        [item.source.field || '_field']: termOutputValue(item.source.value, item.source.numeric),
+      },
+    });
   } else if (item.source.kind === 'match') {
     label = item.source.title || item.source.field || '(unset)';
     description = item.source.value ? `${item.source.field || '?'} ~ ${item.source.value}` : 'no value';
@@ -224,7 +231,11 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
       item.source.values.length > 0
         ? `${item.source.field || '?'} IN (${item.source.values.join(', ')})`
         : 'no values';
-    queryPreview = JSON.stringify({ terms: { [item.source.field || '_field']: item.source.values } });
+    queryPreview = JSON.stringify({
+      terms: {
+        [item.source.field || '_field']: termsOutputValues(item.source.values, item.source.numeric),
+      },
+    });
   } else {
     // exists
     label = item.source.title || item.source.field || '(unset)';
@@ -351,11 +362,11 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
               title="Multi-value terms query"
             >
               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <rect x="3" y="5" width="8" height="3" rx="1" />
-                <rect x="13" y="5" width="8" height="3" rx="1" />
-                <rect x="3" y="11" width="8" height="3" rx="1" />
-                <rect x="13" y="11" width="8" height="3" rx="1" />
-                <rect x="3" y="17" width="8" height="3" rx="1" />
+                <path d="M9 4H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h2" />
+                <path d="M15 4h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2" />
+                <circle cx="8.5" cy="12" r="0.9" fill="currentColor" stroke="none" />
+                <circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none" />
+                <circle cx="15.5" cy="12" r="0.9" fill="currentColor" stroke="none" />
               </svg>
               terms
             </span>

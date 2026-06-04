@@ -1,26 +1,37 @@
 import { useState } from 'react';
 import type { BoolMode } from '../types';
 import { MODE_META } from '../types';
+import { termOutputValue } from '../utils/terms';
 
 type Props = {
   sectionMode: BoolMode;
   initialTitle?: string;
   initialField: string;
   initialValue: string;
-  onSubmit: (patch: { title?: string; field: string; value: string }) => void;
+  initialNumeric?: boolean;
+  onSubmit: (patch: { title?: string; field: string; value: string; numeric: boolean }) => void;
   onCancel: () => void;
 };
 
-export function TermForm({ sectionMode, initialTitle, initialField, initialValue, onSubmit, onCancel }: Props) {
+export function TermForm({
+  sectionMode,
+  initialTitle,
+  initialField,
+  initialValue,
+  initialNumeric,
+  onSubmit,
+  onCancel,
+}: Props) {
   const meta = MODE_META[sectionMode];
   const [title, setTitle] = useState(initialTitle ?? '');
   const [field, setField] = useState(initialField);
   const [value, setValue] = useState(initialValue);
+  const [numeric, setNumeric] = useState(Boolean(initialNumeric));
   const canSave = field.trim().length > 0 && value.trim().length > 0;
 
   const submit = () => {
     if (!canSave) return;
-    onSubmit({ title: title.trim() || undefined, field: field.trim(), value: value.trim() });
+    onSubmit({ title: title.trim() || undefined, field: field.trim(), value: value.trim(), numeric });
   };
 
   return (
@@ -81,11 +92,28 @@ export function TermForm({ sectionMode, initialTitle, initialField, initialValue
         spellCheck={false}
       />
 
+      <label className="mt-2.5 flex cursor-pointer items-start gap-2">
+        <input
+          type="checkbox"
+          checked={numeric}
+          onChange={(e) => setNumeric(e.target.checked)}
+          className="mt-0.5 h-3.5 w-3.5 cursor-pointer rounded border-neutral-300 accent-purple-600 dark:border-neutral-600"
+        />
+        <span className="text-xs text-neutral-700 dark:text-neutral-200">
+          Parse numbers as numbers
+          <span className="block text-[10px] leading-snug text-neutral-400 dark:text-neutral-500">
+            a numeric value is emitted unquoted — 123 instead of "123"
+          </span>
+        </span>
+      </label>
+
       <div className="mt-2 rounded-md border border-neutral-200 bg-white/60 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-300">
         <div className="text-[9px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
           will save as
         </div>
-        <div className="break-all">{`{ "term": { "${field.trim() || '…'}": "${value.trim() || '…'}" } }`}</div>
+        <div className="break-all">{`{ "term": { "${field.trim() || '…'}": ${
+          value.trim() ? JSON.stringify(termOutputValue(value.trim(), numeric)) : '"…"'
+        } } }`}</div>
       </div>
 
       <div className="mt-2 flex items-center justify-end gap-2">

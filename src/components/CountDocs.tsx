@@ -112,10 +112,13 @@ export function CountDocs() {
           count failed: {count.message}
         </span>
       )}
+      {/* Solid gradient pill — the one "talk to Elastic" action in the
+          header, so it gets the strongest visual weight. Disabled state
+          drops the gradient (bg-none) and falls back to a muted flat chip. */}
       <button
         onClick={() => void runCount()}
         disabled={!config.ready || count.kind === 'loading'}
-        className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-50 disabled:text-neutral-400 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 dark:hover:border-emerald-700 dark:hover:bg-emerald-900 dark:disabled:border-neutral-700 dark:disabled:bg-neutral-800 dark:disabled:text-neutral-500"
+        className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-cyan-800 via-cyan-700 to-teal-700 px-3 py-1 text-xs font-semibold text-white shadow-sm shadow-cyan-900/40 ring-1 ring-inset ring-white/20 transition-all hover:shadow-md hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:bg-none disabled:bg-neutral-100 disabled:text-neutral-500 disabled:shadow-none disabled:ring-neutral-200 dark:from-cyan-900 dark:via-cyan-800 dark:to-teal-800 dark:shadow-cyan-950/40 dark:hover:brightness-125 dark:disabled:bg-neutral-800 dark:disabled:text-neutral-400 dark:disabled:ring-neutral-700"
         title={
           config.ready
             ? `Count matching docs on ${config.indexPattern}`
@@ -127,13 +130,13 @@ export function CountDocs() {
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
           </svg>
         ) : (
+          // Tally marks — four strokes and the crossing fifth: counting.
           <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M9 7h11" />
-            <path d="M9 12h11" />
-            <path d="M9 17h11" />
-            <circle cx="4.5" cy="7" r="1" />
-            <circle cx="4.5" cy="12" r="1" />
-            <circle cx="4.5" cy="17" r="1" />
+            <path d="M5 5v14" />
+            <path d="M9.5 5v14" />
+            <path d="M14 5v14" />
+            <path d="M18.5 5v14" />
+            <path d="M3 16L21 8" />
           </svg>
         )}
         <span className="hidden sm:inline">{count.kind === 'loading' ? 'Counting…' : 'Count docs'}</span>

@@ -3,11 +3,13 @@ import { useStore, buildQuery, modeOccurrences, totalItemCount } from '../store'
 import { MODE_META, MODE_ORDER } from '../types';
 import { JsonTree } from './JsonTree';
 import { parseQueryToBlocks } from '../utils/importQuery';
+import { titleSlug } from '../utils/ids';
 
 export function QueryOutput() {
   const templates = useStore((s) => s.templates);
   const blocks = useStore((s) => s.blocks);
   const replaceBlocks = useStore((s) => s.replaceBlocks);
+  const queryTitle = useStore((s) => s.queryTitle);
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -56,8 +58,9 @@ export function QueryOutput() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const slug = titleSlug(queryTitle);
     a.href = url;
-    a.download = `elastix-query-${ts}.json`;
+    a.download = `elastix-query-${slug ? `${slug}-` : ''}${ts}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -73,16 +76,17 @@ export function QueryOutput() {
     >
       <div
         onClick={() => setExpanded((v) => !v)}
-        className="group relative flex cursor-pointer items-center gap-2 overflow-hidden border-b border-blue-200 bg-gradient-to-r from-sky-50 via-blue-50 to-indigo-50 px-3 py-2 transition-colors duration-300 ease-out sm:gap-3 sm:px-5 [&>*:not(.hover-overlay)]:relative [&>*:not(.hover-overlay)]:z-10 dark:border-blue-900 dark:from-sky-950 dark:via-blue-950 dark:to-indigo-950"
+        className="query-headline-flow group relative flex cursor-pointer items-center gap-2 overflow-hidden border-b border-blue-200 px-3 py-2 sm:gap-3 sm:px-5 [&>*:not(.hover-overlay)]:relative [&>*:not(.hover-overlay)]:z-10 dark:border-blue-900"
       >
-        {/* Hover gradient as a separately-faded overlay so the color
-            change is smooth — CSS can't tween background-image gradients
-            directly, but it can tween opacity. Direct children get
-            relative+z-10 via the arbitrary selector above so they paint
+        {/* Hover tint as a separately-faded overlay so the change is smooth
+            — CSS can't tween background-image gradients directly, but it
+            can tween opacity. Semi-transparent (60%) so the flowing
+            gradient underneath stays visible while hovered. Direct children
+            get relative+z-10 via the arbitrary selector above so they paint
             above this overlay. */}
         <span
           aria-hidden
-          className="hover-overlay pointer-events-none absolute inset-0 bg-gradient-to-r from-sky-100 via-blue-100 to-indigo-100 opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100 dark:from-sky-900 dark:via-blue-900 dark:to-indigo-900"
+          className="hover-overlay pointer-events-none absolute inset-0 bg-gradient-to-r from-sky-100 via-blue-100 to-indigo-100 opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-60 dark:from-sky-900 dark:via-blue-900 dark:to-indigo-900"
         />
         <button
           onClick={(e) => {

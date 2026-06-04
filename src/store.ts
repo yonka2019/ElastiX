@@ -9,14 +9,17 @@ import type {
   Template,
 } from './types';
 import { MODE_ORDER } from './types';
+import { termOutputValue, termsOutputValues } from './utils/terms';
 
-// Templates are a read-only catalog. Production loading path:
-//   pod startup → entrypoint reads ConfigMap → envsubst inlines JSON into
-//   index.html under <script id="elastix-templates" type="application/json">.
-// The browser reads that element synchronously; no extra HTTP request.
-// Dev fallback (npm run dev — no entrypoint runs): the placeholder stays
-// literal, JSON.parse throws, and we fetch /templates.json from Vite's
-// public/ folder.
+// Templates are a read-only catalog, tried in order:
+//   1. GET /api/templates — MongoDB collection via the server middleware
+//      (server/templatesApi.js; shared by dev Vite and prod server.js).
+//      Not configured / unreachable → fall through.
+//   2. Inline DOM catalog — pod startup reads the ConfigMap and inlines the
+//      JSON into index.html under
+//      <script id="elastix-templates" type="application/json">.
+//   3. /templates.json from Vite's public/ folder (plain dev fallback —
+//      the inline placeholder stays literal and JSON.parse throws).
 const TEMPLATES_URL = '/templates.json';
 const INLINE_ELEMENT_ID = 'elastix-templates';
 
@@ -56,6 +59,12 @@ type StoreState = {
   autoCount: boolean;
   setAutoCount: (v: boolean) => void;
 
+  // User-facing name for the whole query. Edited inline in the header,
+  // included in .elastix exports and download filenames. Never emitted into
+  // the query JSON itself — ES has no concept of a query title.
+  queryTitle: string;
+  setQueryTitle: (title: string) => void;
+
   addBlock: (mode: BoolMode, atIndex?: number) => string;
   addNestedBlock: (parentBlockId: string, mode: BoolMode, atIndex?: number) => string | null;
   removeBlock: (blockId: string) => void;
@@ -76,7 +85,7 @@ type StoreState = {
   ) => string | null;
   addTermToBlock: (
     blockId: string,
-    payload: { field: string; value: string },
+    payload: { field: string; value: string; numeric?: boolean },
     atIndex?: number
   ) => string | null;
   addMatchToBlock: (
@@ -86,7 +95,7 @@ type StoreState = {
   ) => string | null;
   addTermsToBlock: (
     blockId: string,
-    payload: { field: string; values: string[] },
+    payload: { field: string; values: string[]; numeric?: boolean },
     atIndex?: number
   ) => string | null;
   addExistsToBlock: (
@@ -105,11 +114,14 @@ type StoreState = {
     instanceId: string,
     patch: { title?: string; field?: string; gte?: string; lte?: string }
   ) => void;
-  updateTermItem: (instanceId: string, patch: { title?: string; field?: string; value?: string }) => void;
+  updateTermItem: (
+    instanceId: string,
+    patch: { title?: string; field?: string; value?: string; numeric?: boolean }
+  ) => void;
   updateMatchItem: (instanceId: string, patch: { title?: string; field?: string; value?: string }) => void;
   updateTermsItem: (
     instanceId: string,
-    patch: { title?: string; field?: string; values?: string[] }
+    patch: { title?: string; field?: string; values?: string[]; numeric?: boolean }
   ) => void;
   updateExistsItem: (instanceId: string, patch: { title?: string; field?: string }) => void;
   removeItem: (instanceId: string) => void;
@@ -221,6 +233,9 @@ export const useStore = create<StoreState>()(
       pendingEditId: null,
       config: { kibanaUrl: '', indexPattern: '*', dataViewId: '', ready: false },
       autoCount: readStoredAutoCount(),
+      queryTitle: '',
+
+      setQueryTitle: (queryTitle) => set({ queryTitle }),
 
       setAutoCount: (v) => {
         try {
@@ -378,7 +393,7 @@ export const useStore = create<StoreState>()(
         return added ? instanceId : null;
       },
 
-      addTermToBlock: (blockId, { field, value }, atIndex) => {
+      addTermToBlock: (blockId, { field, value, numeric }, atIndex) => {
         const instanceId = uuidv4();
         let added = false;
         set((s) => ({
@@ -386,7 +401,7 @@ export const useStore = create<StoreState>()(
             added = true;
             const item: BuilderItem = {
               instanceId,
-              source: { kind: 'term', field, value },
+              source: { kind: 'term', field, value, ...(numeric ? { numeric: true } : {}) },
             };
             return { ...b, items: insertAt(b.items, item, atIndex) };
           }),
@@ -410,7 +425,7 @@ export const useStore = create<StoreState>()(
         return added ? instanceId : null;
       },
 
-      addTermsToBlock: (blockId, { field, values }, atIndex) => {
+      addTermsToBlock: (blockId, { field, values, numeric }, atIndex) => {
         const instanceId = uuidv4();
         let added = false;
         set((s) => ({
@@ -418,7 +433,7 @@ export const useStore = create<StoreState>()(
             added = true;
             const item: BuilderItem = {
               instanceId,
-              source: { kind: 'terms', field, values },
+              source: { kind: 'terms', field, values, ...(numeric ? { numeric: true } : {}) },
             };
             return { ...b, items: insertAt(b.items, item, atIndex) };
           }),
@@ -553,6 +568,11 @@ export const useStore = create<StoreState>()(
                   title: patch.title !== undefined ? patch.title || undefined : existing.source.title,
                   field: patch.field ?? existing.source.field,
                   value: patch.value ?? existing.source.value,
+                  // True-or-absent, like the terms clause below.
+                  numeric:
+                    patch.numeric !== undefined
+                      ? patch.numeric || undefined
+                      : existing.source.numeric,
                 },
               };
               return { ...b, items };
@@ -605,6 +625,12 @@ export const useStore = create<StoreState>()(
                   title: patch.title !== undefined ? patch.title || undefined : existing.source.title,
                   field: patch.field ?? existing.source.field,
                   values: patch.values ?? existing.source.values,
+                  // Stored as true-or-absent (never false) to keep persisted
+                  // state clean. An explicit false in the patch clears it.
+                  numeric:
+                    patch.numeric !== undefined
+                      ? patch.numeric || undefined
+                      : existing.source.numeric,
                 },
               };
               return { ...b, items };
@@ -759,13 +785,27 @@ export const useStore = create<StoreState>()(
 
       loadTemplates: async () => {
         set({ templatesLoading: true, templatesError: null });
-        // Production / Docker / K8s: catalog is already in the DOM.
+        // 1) MongoDB catalog via the server middleware. 404 means "not
+        //    configured" — fall through to the static sources silently.
+        try {
+          const res = await fetch('/api/templates', { cache: 'no-store' });
+          if (res.ok) {
+            const list = (await res.json()) as unknown;
+            if (Array.isArray(list)) {
+              set({ templates: list as Template[], templatesLoading: false });
+              return;
+            }
+          }
+        } catch {
+          // No middleware at all (static build w/o backend) — fall through.
+        }
+        // 2) Production / Docker / K8s: catalog is already in the DOM.
         const inline = readInlineTemplates();
         if (inline) {
           set({ templates: inline, templatesLoading: false });
           return;
         }
-        // Dev fallback: Vite serves public/templates.json.
+        // 3) Dev fallback: Vite serves public/templates.json.
         try {
           const res = await fetch(TEMPLATES_URL, { cache: 'no-store' });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -784,9 +824,9 @@ export const useStore = create<StoreState>()(
     {
       name: 'eck-template-builder-v2',
       version: 7,
-      // Only blocks survive a reload; templates are loaded from MongoDB on
-      // mount via loadTemplates().
-      partialize: (state) => ({ blocks: state.blocks }),
+      // Blocks and the query title survive a reload; templates are loaded
+      // on mount via loadTemplates().
+      partialize: (state) => ({ blocks: state.blocks, queryTitle: state.queryTitle }),
       migrate: (persisted: unknown, version) => {
         const state = persisted as {
           templates?: Template[];
@@ -953,7 +993,9 @@ function resolveItemWithMap(
   }
   if (item.source.kind === 'term') {
     if (!item.source.field.trim() || !item.source.value.trim()) return undefined;
-    return { term: { [item.source.field]: item.source.value } };
+    return {
+      term: { [item.source.field]: termOutputValue(item.source.value, item.source.numeric) },
+    };
   }
   if (item.source.kind === 'match') {
     if (!item.source.field.trim() || !item.source.value.trim()) return undefined;
@@ -962,7 +1004,9 @@ function resolveItemWithMap(
   if (item.source.kind === 'terms') {
     const cleaned = item.source.values.map((v) => v.trim()).filter(Boolean);
     if (!item.source.field.trim() || cleaned.length === 0) return undefined;
-    return { terms: { [item.source.field]: cleaned } };
+    return {
+      terms: { [item.source.field]: termsOutputValues(cleaned, item.source.numeric) },
+    };
   }
   if (item.source.kind === 'exists') {
     if (!item.source.field.trim()) return undefined;

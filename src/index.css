@@ -232,6 +232,19 @@ html.dark[data-tint='plum'] .dark\:hover\:bg-neutral-800:hover { background-colo
 }
 .rainbow-text { animation: rainbow-text 6s linear infinite; }
 
+/* ─── "by yonka" corner — hover lift ────────────────────────────────────
+   Hovering anywhere on "by yonka" smoothly nudges the whole text up a few
+   px (replaces the old "lol hi" tooltip). A plain transition — no loop, no
+   rotation; it settles while hovered and eases back on leave. The
+   transform lives on a wrapper span, so the per-letter rainbow-text colour
+   animation (different property, different elements) keeps running
+   undisturbed. */
+.yonka-word {
+  display: inline-block;
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.yonka-corner:hover .yonka-word { transform: translateY(-3px); }
+
 /* ─── Echo — sonar ripple pulsing from a circle ─────────────────────────
    Used on the empty Builder's "Drag a block from the left" target circle.
    Two ring clones scale outward and fade on a staggered loop, so a fresh
@@ -256,6 +269,28 @@ html.dark[data-tint='plum'] .dark\:hover\:bg-neutral-800:hover { background-colo
   animation: echo-ring 3s ease-out infinite;
 }
 .echo-ring::after { animation-delay: 1.5s; }
+
+/* ─── Generated Query headline — flowing gradient ───────────────────────
+   The header bar's blue gradient drifts continuously left-to-right in a
+   slow loop (same 200%-wide doubled-pattern trick as .rainbow-line, and it
+   reuses the rainbow-flow keyframes). First stop = last stop so the cycle
+   is seamless. Stops are a touch more saturated than the old static
+   sky-50/blue-50/indigo-50 so the movement is actually visible; text on
+   the bar is blue-900/blue-100 and keeps plenty of contrast. */
+.query-headline-flow {
+  background-image: linear-gradient(
+    90deg,
+    #bae6fd, #dbeafe, #c7d2fe, #dbeafe, #bae6fd
+  );
+  background-size: 200% 100%;
+  animation: rainbow-flow 10s linear infinite;
+}
+html.dark .query-headline-flow {
+  background-image: linear-gradient(
+    90deg,
+    #082f49, #1e3a8a, #312e81, #1e3a8a, #082f49
+  );
+}
 
 /* ─── Count pop — result chip nudge when a fresh count lands ────────────
    The "X docs" chip rises a few px and settles with a slight overshoot

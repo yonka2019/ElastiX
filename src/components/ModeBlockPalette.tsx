@@ -8,7 +8,6 @@ export type LeafPaletteId =
   | 'custom'
   | 'timestamp-range'
   | 'term'
-  | 'match'
   | 'terms'
   | 'exists';
 
@@ -36,16 +35,6 @@ type LeafSpec =
   | {
       id: 'term';
       kind: 'term';
-      label: string;
-      caption: string;
-      glyph: ReactNode;
-      accent: string;
-      ring: string;
-      payload: { field: string; value: string };
-    }
-  | {
-      id: 'match';
-      kind: 'match';
       label: string;
       caption: string;
       glyph: ReactNode;
@@ -90,22 +79,6 @@ const CustomGlyph = (
   </svg>
 );
 
-const MatchGlyph = (
-  <svg
-    viewBox="0 0 24 24"
-    className="h-3.5 w-3.5"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden
-  >
-    <circle cx="11" cy="11" r="6" />
-    <path d="M16 16l5 5" />
-  </svg>
-);
-
 const TermGlyph = (
   <svg
     viewBox="0 0 24 24"
@@ -123,6 +96,7 @@ const TermGlyph = (
   </svg>
 );
 
+// Array brackets with value dots — terms is literally "field IN [a, b, c]".
 const TermsGlyph = (
   <svg
     viewBox="0 0 24 24"
@@ -134,11 +108,11 @@ const TermsGlyph = (
     strokeLinejoin="round"
     aria-hidden
   >
-    <rect x="3" y="5" width="8" height="3" rx="1" />
-    <rect x="13" y="5" width="8" height="3" rx="1" />
-    <rect x="3" y="11" width="8" height="3" rx="1" />
-    <rect x="13" y="11" width="8" height="3" rx="1" />
-    <rect x="3" y="17" width="8" height="3" rx="1" />
+    <path d="M9 4H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h2" />
+    <path d="M15 4h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2" />
+    <circle cx="8.5" cy="12" r="0.9" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none" />
+    <circle cx="15.5" cy="12" r="0.9" fill="currentColor" stroke="none" />
   </svg>
 );
 
@@ -208,16 +182,6 @@ export const LEAF_PALETTE: LeafSpec[] = [
     accent: 'text-teal-700 dark:text-teal-300',
     ring: 'hover:ring-teal-200 dark:hover:ring-teal-800',
     payload: { field: '' },
-  },
-  {
-    id: 'match',
-    kind: 'match',
-    label: 'match',
-    caption: 'full-text search',
-    glyph: MatchGlyph,
-    accent: 'text-rose-700 dark:text-rose-300',
-    ring: 'hover:ring-rose-200 dark:hover:ring-rose-800',
-    payload: { field: '', value: '' },
   },
 ];
 
@@ -359,7 +323,7 @@ export function ModeBlockPalette({
         <div className="hidden text-[11px] text-neutral-500 sm:block dark:text-neutral-400">Drag onto the builder</div>
       </div>
       {/*
-        Mobile (<md): 2-column grid keeps all 11 palette cards in ~6 short
+        Mobile (<md): 2-column grid keeps all 10 palette cards in ~5 short
         rows so the Builder is reachable with one short scroll. Divider
         spans the full row.
         md+: single-column scrolling list (the original shape).

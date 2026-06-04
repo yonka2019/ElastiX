@@ -14,3 +14,11 @@ services:
     # to pick up the new catalog (the server inlines at process start).
     volumes:
       - ./public/templates.json:/etc/templates/templates.json:ro
+    # Prefer templates from MongoDB instead of the mounted file: set
+    # MONGO_URL and the frontend pulls the catalog live from
+    # GET /api/templates. The file above stays as the fallback whenever
+    # Mongo is unset or unreachable.
+    # environment:
+    #   MONGO_URL: mongodb://mongo:27017
+    #   MONGO_DB: elastix                       # default
+    #   MONGO_TEMPLATES_COLLECTION: templates   # default

@@ -19,6 +19,11 @@ RUN npm run build
 
 FROM node:20-alpine AS runtime
 WORKDIR /app
+# Runtime deps only — `dependencies` holds just the server's needs (mongodb
+# for /api/templates). All UI packages live in devDependencies because Vite
+# bundles them at build time, so this install stays tiny.
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund
 COPY --from=build /app/dist ./web
 COPY server.js ./server.js
 COPY server ./server

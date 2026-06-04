@@ -124,9 +124,14 @@ export type BuilderSource =
   | { kind: 'template'; templateId: string }
   | { kind: 'custom'; name: string; query: Record<string, unknown> }
   | { kind: 'timestamp'; title?: string; field: string; gte?: string; lte?: string }
-  | { kind: 'term'; title?: string; field: string; value: string }
+  // `numeric` (term/terms): see the terms comment below — numeric-looking
+  // values are emitted as JSON numbers at query-build time.
+  | { kind: 'term'; title?: string; field: string; value: string; numeric?: boolean }
   | { kind: 'match'; title?: string; field: string; value: string }
-  | { kind: 'terms'; title?: string; field: string; values: string[] }
+  // `numeric`: when set, values that look like numbers are emitted as JSON
+  // numbers (123) instead of strings ("123"). Values are still stored as
+  // strings; the conversion happens at query-build time (see utils/terms.ts).
+  | { kind: 'terms'; title?: string; field: string; values: string[]; numeric?: boolean }
   | { kind: 'exists'; title?: string; field: string }
   | { kind: 'bool'; block: ModeBlock };
 

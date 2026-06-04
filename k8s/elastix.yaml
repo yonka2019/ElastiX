@@ -75,6 +75,18 @@ spec:
         - name: web
           image: elastix:local            # replace with your registry path
           imagePullPolicy: IfNotPresent
+          # Prefer templates from MongoDB: set MONGO_URL and the frontend
+          # pulls the catalog live from GET /api/templates (30s cache, no
+          # pod restart on collection edits). The ConfigMap mount below
+          # stays as the fallback whenever Mongo is unset or unreachable.
+          # env:
+          #   - name: MONGO_URL
+          #     valueFrom:
+          #       secretKeyRef: { name: elastix-mongo, key: url }
+          #   - name: MONGO_DB
+          #     value: elastix                    # default
+          #   - name: MONGO_TEMPLATES_COLLECTION
+          #     value: templates                  # default
           ports:
             - containerPort: 4000
               name: http

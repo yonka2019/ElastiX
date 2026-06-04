@@ -64,9 +64,12 @@ function parseClause(clause: unknown, counter: Counter): BuilderItem | null {
     if (!f) return customItem(clause, counter);
     const value = asString(f.value);
     if (value === undefined) return customItem(clause, counter);
+    // A JSON-number source value flips the numeric flag so re-exporting
+    // emits it as a number again (same stance as terms below).
+    const numeric = typeof f.value === 'number';
     return {
       instanceId: uuidv4(),
-      source: { kind: 'term', field: f.field, value },
+      source: { kind: 'term', field: f.field, value, ...(numeric ? { numeric: true } : {}) },
     };
   }
 
@@ -88,9 +91,14 @@ function parseClause(clause: unknown, counter: Counter): BuilderItem | null {
       .map((v) => asString(v))
       .filter((v): v is string => v !== undefined);
     if (values.length === 0) return customItem(clause, counter);
+    // Any JSON number in the source array flips the row's numeric flag, so
+    // re-exporting emits those values as numbers again. (Edge: a numeric-
+    // LOOKING string mixed with real numbers would also convert — accepted,
+    // same lossy-but-honest stance as the rest of this importer.)
+    const numeric = f.value.some((v) => typeof v === 'number');
     return {
       instanceId: uuidv4(),
-      source: { kind: 'terms', field: f.field, values },
+      source: { kind: 'terms', field: f.field, values, ...(numeric ? { numeric: true } : {}) },
     };
   }
 

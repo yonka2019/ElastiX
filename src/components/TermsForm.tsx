@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import type { BoolMode } from '../types';
 import { MODE_META } from '../types';
+import { stripWrappingQuotes, termsOutputValues } from '../utils/terms';
 
 type Props = {
   sectionMode: BoolMode;
   initialTitle?: string;
   initialField: string;
   initialValues: string[];
-  onSubmit: (patch: { title?: string; field: string; values: string[] }) => void;
+  initialNumeric?: boolean;
+  onSubmit: (patch: { title?: string; field: string; values: string[]; numeric: boolean }) => void;
   onCancel: () => void;
 };
 
@@ -16,6 +18,7 @@ export function TermsForm({
   initialTitle,
   initialField,
   initialValues,
+  initialNumeric,
   onSubmit,
   onCancel,
 }: Props) {
@@ -23,20 +26,23 @@ export function TermsForm({
   const [title, setTitle] = useState(initialTitle ?? '');
   const [field, setField] = useState(initialField);
   const [values, setValues] = useState<string[]>(initialValues);
+  const [numeric, setNumeric] = useState(Boolean(initialNumeric));
   const [draft, setDraft] = useState('');
   const canSave = field.trim().length > 0 && values.length > 0;
 
   const submit = () => {
     if (!canSave) return;
-    onSubmit({ title: title.trim() || undefined, field: field.trim(), values: values.slice() });
+    onSubmit({ title: title.trim() || undefined, field: field.trim(), values: values.slice(), numeric });
   };
 
   // Accepts a single value OR a comma-separated list. Empty entries dropped,
-  // duplicates (against current and within the input) skipped.
+  // duplicates (against current and within the input) skipped. Wrapping
+  // quotes are stripped ('"test"' → 'test') so pasted JSON values don't end
+  // up double-quoted in the generated query (""test"").
   const addValues = (raw: string) => {
     const next = [...values];
     for (const part of raw.split(',')) {
-      const t = part.trim();
+      const t = stripWrappingQuotes(part);
       if (!t) continue;
       if (next.includes(t)) continue;
       next.push(t);
@@ -66,7 +72,7 @@ export function TermsForm({
         <span
           className={`inline-flex items-center gap-1 rounded border bg-white px-1.5 py-0.5 font-mono text-[10px] dark:bg-neutral-900 ${meta.accentText} ${meta.softBorder}`}
         >
-          ▦ terms (multi value) in {meta.label}
+          [⋯] terms (multi value) in {meta.label}
         </span>
       </div>
 
@@ -146,12 +152,29 @@ export function TermsForm({
         </button>
       </div>
 
+      <label className="mt-2.5 flex cursor-pointer items-start gap-2">
+        <input
+          type="checkbox"
+          checked={numeric}
+          onChange={(e) => setNumeric(e.target.checked)}
+          className="mt-0.5 h-3.5 w-3.5 cursor-pointer rounded border-neutral-300 accent-fuchsia-600 dark:border-neutral-600"
+        />
+        <span className="text-xs text-neutral-700 dark:text-neutral-200">
+          Parse numbers as numbers
+          <span className="block text-[10px] leading-snug text-neutral-400 dark:text-neutral-500">
+            numeric values are emitted unquoted — 123 instead of "123"
+          </span>
+        </span>
+      </label>
+
       <div className="mt-2 rounded-md border border-neutral-200 bg-white/60 px-2 py-1.5 font-mono text-[11px] leading-relaxed text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-300">
         <div className="text-[9px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
           will save as
         </div>
         <div className="break-all">{`{ "terms": { "${field.trim() || '…'}": [${
-          values.length ? values.map((v) => `"${v}"`).join(', ') : '…'
+          values.length
+            ? termsOutputValues(values, numeric).map((v) => JSON.stringify(v)).join(', ')
+            : '…'
         }] } }`}</div>
       </div>
 

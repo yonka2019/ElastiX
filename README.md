@@ -41,6 +41,9 @@ The frontend never sees these — they're read by the dev middleware (`vite.conf
 | `ELASTIC_INSECURE` | Set `true` to skip TLS verification (dev only). |
 | `KIBANA_URL` | Kibana base URL. Required for the **Open in Kibana** button. |
 | `KIBANA_DATA_VIEW_ID` | Optional Discover data-view UUID. |
+| `MONGO_URL` | Optional MongoDB connection string. When set, templates are served live from Mongo via `GET /api/templates` (preferred over the static catalog). |
+| `MONGO_DB` | Mongo database name. Default `elastix`. |
+| `MONGO_TEMPLATES_COLLECTION` | Collection holding the templates. Default `templates`. |
 
 Copy `.env.example` to `.env` for dev. In prod, set them on the container/pod.
 
@@ -68,6 +71,7 @@ src/
     dateMath.ts                 ES "now-15m"-style expressions
 server/
   elasticApi.js                 shared /api/config + /api/count handlers
+  templatesApi.js               /api/templates — MongoDB catalog handler
 server.js                       prod static server (mounts /api/*)
 vite.config.ts                  dev server (mounts /api/* via the same module)
 public/
@@ -80,7 +84,7 @@ public/
 - **Block-based bool builder** — must, filter, should, must_not. Drag to reorder, drag onto another block's body to nest.
 - **Nested queries** — a 5th block type with an editable `path:` that wraps its items in an ES `nested` clause.
 - **Leaf clauses** — custom (free JSON), timestamp (range), term, terms, exists, match. Each has an optional title.
-- **Templates** — pulled from `public/templates.json` (or a ConfigMap mounted at `/etc/templates/templates.json` in K8s). Searchable. Eye button shows the JSON.
+- **Templates** — pulled from a MongoDB collection (`MONGO_URL`), or `public/templates.json` / a ConfigMap mounted at `/etc/templates/templates.json` as fallback. Searchable. Eye button shows the JSON.
 - **Generated Query view** — collapsible JSON tree with per-node toggles; copy + count docs + open-in-Kibana.
 - **Dark mode** — header toggle, follows system preference until you choose, persists in localStorage.
 - **Import / Export** — save the entire builder state (blocks, names, paths, titles, nested structure) as a `.elastix` file. Re-importable.
@@ -120,5 +124,5 @@ Same code path works inside a container or a K8s pod. Templates can be supplied 
 
 ## Notes
 
-- The zustand persist key is `eck-template-builder-v2`. Schema version lives in `store.ts` (currently v6). Cross-version migrations live in the `migrate` callback.
+- The zustand persist key is `eck-template-builder-v2`. Schema version lives in `store.ts` (currently v7). Cross-version migrations live in the `migrate` callback.
 - The drag-and-drop collision detection in `App.tsx` has hysteresis to avoid flickering between nested drop targets — see the comment block in `collisionDetection`.

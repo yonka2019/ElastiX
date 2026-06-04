@@ -1,21 +1,26 @@
 // Tiny static server for the production image. Replaces nginx.
 //
-// At startup, reads the templates catalog from one of:
-//   1. /etc/templates/templates.json   ← K8s ConfigMap mount
-//   2. ./web/templates.json            ← bundled fallback
-// …then inlines the JSON into index.html under
-//   <script id="elastix-templates" type="application/json">…</script>.
-// The browser reads it from the DOM — no separate HTTP request for templates.
-//
-// Restart the pod (or container) to pick up a ConfigMap change.
+// Templates catalog, two sources:
+//   • MongoDB (preferred when MONGO_URL is set): served live via
+//     GET /api/templates — see server/templatesApi.js. Collection edits
+//     show up on the next page load (30s cache), no restart needed.
+//   • Static fallback: at startup, reads the catalog from one of
+//       1. /etc/templates/templates.json   ← K8s ConfigMap mount
+//       2. ./web/templates.json            ← bundled fallback
+//     …then inlines the JSON into index.html under
+//       <script id="elastix-templates" type="application/json">…</script>.
+//     The browser reads it from the DOM — no separate HTTP request.
+//     Restart the pod (or container) to pick up a ConfigMap change.
 
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-  import { fileURLToPath } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { makeElasticHandlers } from './server/elasticApi.js';
+import { makeTemplatesHandler } from './server/templatesApi.js';
 
 const { handleConfig, handleCount } = makeElasticHandlers(process.env);
+const { handleTemplates, closeTemplates } = makeTemplatesHandler(process.env);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = path.join(__dirname, 'web');
@@ -90,6 +95,9 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/count') {
     return handleCount(req, res);
   }
+  if (pathname === '/api/templates') {
+    return handleTemplates(req, res);
+  }
 
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { allow: 'GET, HEAD' });
@@ -147,6 +155,7 @@ server.listen(PORT, () => {
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
     console.log(`elastix: received ${signal}, shutting down`);
+    void closeTemplates();
     server.close(() => process.exit(0));
     setTimeout(() => process.exit(1), 5000).unref();
   });
