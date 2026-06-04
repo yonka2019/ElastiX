@@ -92,7 +92,10 @@ export function CountDocs() {
     <div className="flex items-center gap-1.5 sm:gap-2">
       {count.kind === 'ok' && (
         <span
-          className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+          // Keyed by the result timestamp so each fresh count remounts the
+          // chip and replays the one-shot pop animation (see index.css).
+          key={count.at}
+          className="count-pop inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-white px-2 py-0.5 font-mono text-[11px] font-semibold text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200"
           title={`Matched on index pattern ${config.indexPattern}`}
         >
           <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden>

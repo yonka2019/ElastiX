@@ -3,13 +3,13 @@
 // without a build step.
 
 export function makeElasticHandlers(env) {
-  const elasticUrl = (env.ELASTIC_URL || env.ELASTICSEARCH_URL || '').replace(/\/$/, '');
-  const username = env.ELASTIC_USERNAME || '';
-  const password = env.ELASTIC_PASSWORD || '';
+  const elasticUrl = (env.ELASTIC_URL || env.ELASTICSEARCH_URL || 'https://a1ce5c513dbc471cbe24ff52ba9725e0.us-central1.gcp.cloud.es.io:443').replace(/\/$/, '');
+  const username = env.ELASTIC_USERNAME || 'test';
+  const password = env.ELASTIC_PASSWORD || 'test!!';
   const apiKey = env.ELASTIC_API_KEY || '';
-  const indexPattern = env.ELASTIC_INDEX || env.ELASTIC_INDEX_PATTERN || '*';
-  const kibanaUrl = (env.KIBANA_URL || '').replace(/\/$/, '');
-  const dataViewId = env.KIBANA_DATA_VIEW_ID || '';
+  const indexPattern = env.ELASTIC_INDEX || env.ELASTIC_INDEX_PATTERN || 'data*';
+  const kibanaUrl = (env.KIBANA_URL || 'https://0bb5d34bfb754147948f79c3cfb0fe43.us-central1.gcp.cloud.es.io').replace(/\/$/, '');
+  const dataViewId = env.KIBANA_DATA_VIEW_ID || 'e73e0ed4-a079-4850-8087-c5902155d8c6';
   const insecure =
     (env.ELASTIC_INSECURE || '').toLowerCase() === 'true' ||
     (env.NODE_TLS_REJECT_UNAUTHORIZED === '0');

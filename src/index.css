@@ -253,6 +253,18 @@ html.dark[data-tint='plum'] .dark\:hover\:bg-neutral-800:hover { background-colo
   border-radius: 9999px;
   border: 2px solid #a3a3a3;
   pointer-events: none;
-  animation: echo-ring 2.2s ease-out infinite;
+  animation: echo-ring 3s ease-out infinite;
 }
-.echo-ring::after { animation-delay: 1.1s; }
+.echo-ring::after { animation-delay: 1.5s; }
+
+/* ─── Count pop — result chip nudge when a fresh count lands ────────────
+   The "X docs" chip rises a few px and settles with a slight overshoot
+   each time a count completes. The chip is keyed by the result timestamp
+   in CountDocs.tsx, so React remounts it per result and the one-shot
+   animation replays even when only the number changes. */
+@keyframes count-pop {
+  0%   { opacity: 0; transform: translateY(6px); }
+  60%  { opacity: 1; transform: translateY(-2px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.count-pop { animation: count-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
