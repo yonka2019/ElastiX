@@ -232,18 +232,20 @@ html.dark[data-tint='plum'] .dark\:hover\:bg-neutral-800:hover { background-colo
 }
 .rainbow-text { animation: rainbow-text 6s linear infinite; }
 
-/* ─── "by yonka" corner — hover lift ────────────────────────────────────
-   Hovering anywhere on "by yonka" smoothly nudges the whole text up a few
-   px (replaces the old "lol hi" tooltip). A plain transition — no loop, no
-   rotation; it settles while hovered and eases back on leave. The
-   transform lives on a wrapper span, so the per-letter rainbow-text colour
-   animation (different property, different elements) keeps running
-   undisturbed. */
+/* ─── "by yonka" corner — hover grow ────────────────────────────────────
+   Hovering anywhere on "by yonka" smoothly scales the whole text up a
+   little (replaces the old "lol hi" tooltip). A plain transition — it
+   settles while hovered and eases back on leave. transform-origin is the
+   bottom-right so the text grows up-and-left, staying inside the screen
+   corner it's pinned to. The transform lives on a wrapper span, so the
+   per-letter rainbow-text colour animation (different property, different
+   elements) keeps running undisturbed. */
 .yonka-word {
   display: inline-block;
-  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: bottom right;
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.yonka-corner:hover .yonka-word { transform: translateY(-3px); }
+.yonka-corner:hover .yonka-word { transform: scale(1.15); }
 
 /* ─── Echo — sonar ripple pulsing from a circle ─────────────────────────
    Used on the empty Builder's "Drag a block from the left" target circle.
