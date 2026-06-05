@@ -100,7 +100,7 @@ export function TermForm({
           className="mt-0.5 h-3.5 w-3.5 cursor-pointer rounded border-neutral-300 accent-purple-600 dark:border-neutral-600"
         />
         <span className="text-xs text-neutral-700 dark:text-neutral-200">
-          Parse numbers as numbers
+          Parse to number (single)
           <span className="block text-[10px] leading-snug text-neutral-400 dark:text-neutral-500">
             a numeric value is emitted unquoted — 123 instead of "123"
           </span>

@@ -217,18 +217,17 @@ html.dark[data-tint='plum'] .dark\:hover\:bg-neutral-800:hover { background-colo
 .enter-d2 { animation-delay: 150ms; }
 .enter-d3 { animation-delay: 230ms; }
 
-/* ─── Signature — hue-cycling rainbow text ──────────────────────────────
-   Cycles the `color` through the full spectrum rather than clipping a
-   gradient, so it literally "changes colours" and skips the muddy
-   gradient-text look. Same deliberate no-reduced-motion stance as above. */
+/* ─── Signature — blue↔yellow cycling text (Ukraine) ────────────────────
+   Cycles the `color` between sky blue and yellow — long holds on each colour
+   with quick crossfades between, so it reads as two colours trading
+   places rather than drifting through intermediate hues. Same deliberate
+   no-reduced-motion stance as above. */
 @keyframes rainbow-text {
-  0%   { color: #ef4444; }
-  17%  { color: #f59e0b; }
-  34%  { color: #10b981; }
-  50%  { color: #0ea5e9; }
-  67%  { color: #6366f1; }
-  84%  { color: #d946ef; }
-  100% { color: #ef4444; }
+  0%   { color: #38bdf8; }
+  40%  { color: #38bdf8; }
+  50%  { color: #facc15; }
+  90%  { color: #facc15; }
+  100% { color: #38bdf8; }
 }
 .rainbow-text { animation: rainbow-text 6s linear infinite; }
 

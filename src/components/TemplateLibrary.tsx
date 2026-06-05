@@ -64,7 +64,7 @@ export function TemplateLibrary({ activeDragId, dragDisabled }: Props) {
       <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
         <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Templates</div>
         <div className="text-xs text-neutral-500 dark:text-neutral-400">
-          Catalog from <span className="font-mono">/templates.json</span> — drag onto the builder
+          Catalog from <span className="font-mono">MongoDB</span> — drag onto the builder
         </div>
         <div className="relative mt-2">
           <input

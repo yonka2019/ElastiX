@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "mongodb": "^6.10.0"
+    "mongodb": "^6.21.0"
   },
   "devDependencies": {
     "@dnd-kit/core": "^6.1.0",

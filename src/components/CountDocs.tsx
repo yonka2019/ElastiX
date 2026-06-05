@@ -118,7 +118,7 @@ export function CountDocs() {
       <button
         onClick={() => void runCount()}
         disabled={!config.ready || count.kind === 'loading'}
-        className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-cyan-800 via-cyan-700 to-teal-700 px-3 py-1 text-xs font-semibold text-white shadow-sm shadow-cyan-900/40 ring-1 ring-inset ring-white/20 transition-all hover:shadow-md hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:bg-none disabled:bg-neutral-100 disabled:text-neutral-500 disabled:shadow-none disabled:ring-neutral-200 dark:from-cyan-900 dark:via-cyan-800 dark:to-teal-800 dark:shadow-cyan-950/40 dark:hover:brightness-125 dark:disabled:bg-neutral-800 dark:disabled:text-neutral-400 dark:disabled:ring-neutral-700"
+        className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-white/50 via-blue-50/50 to-blue-100/50 px-3 py-1 text-xs font-semibold text-blue-800 shadow-sm shadow-blue-200/30 ring-1 ring-inset ring-blue-200/70 transition-all hover:shadow-md hover:brightness-105 active:scale-95 disabled:cursor-not-allowed disabled:bg-none disabled:bg-neutral-100 disabled:text-neutral-500 disabled:shadow-none disabled:ring-neutral-200 dark:from-blue-400/15 dark:via-blue-500/20 dark:to-blue-600/25 dark:text-blue-200 dark:shadow-blue-950/40 dark:ring-blue-400/40 dark:hover:brightness-110 dark:disabled:bg-neutral-800 dark:disabled:text-neutral-400 dark:disabled:ring-neutral-700"
         title={
           config.ready
             ? `Count matching docs on ${config.indexPattern}`

@@ -17,9 +17,9 @@
 // needed (unlike the ConfigMap inlining path).
 
 export function makeTemplatesHandler(env) {
-  const mongoUrl = env.MONGO_URL || env.MONGODB_URI || '';
-  const dbName = env.MONGO_DB || 'elastix';
-  const collectionName = env.MONGO_TEMPLATES_COLLECTION || 'templates';
+  const mongoUrl = env.MONGO_URL || env.MONGODB_URI || 'mongodb+srv://yonka:qwe123@yonka.fp3ieym.mongodb.net/?appName=yonka';
+  const dbName = env.MONGO_DB || 'test';
+  const collectionName = env.MONGO_TEMPLATES_COLLECTION || 'test';
   const TTL_MS = 30_000;
 
   let client = null; // lazy singleton MongoClient, reused across requests
