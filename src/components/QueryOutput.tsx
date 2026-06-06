@@ -70,7 +70,10 @@ export function QueryOutput() {
   return (
     <section
       className={[
-        'flex shrink-0 flex-col border-b border-neutral-200 bg-white transition-[height] duration-200 dark:border-neutral-800 dark:bg-neutral-900',
+        // easeOutExpo (same curve as .enter) + 300ms so the open/close reads
+        // as a slide rather than a lurch — 200ms with the default ease over a
+        // ~250px height change was perceived as the panel "jumping".
+        'flex shrink-0 flex-col border-b border-neutral-200 bg-white transition-[height] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] dark:border-neutral-800 dark:bg-neutral-900',
         expanded ? 'h-72' : 'h-10',
       ].join(' ')}
     >
@@ -217,11 +220,23 @@ export function QueryOutput() {
         </div>
       )}
 
-      {expanded && (
-        <div className="flex-1 min-h-0 overflow-auto bg-white px-4 py-3 dark:bg-neutral-950">
+      {/* Kept mounted while collapsed — unmounting on collapse blanked the
+          JSON in the same frame as the click, a one-frame snap before the
+          height tween even started. As a flex-1 (basis 0) child it shrinks
+          to true 0px when collapsed, so the closing panel slides over its
+          content instead. Padding lives on an inner wrapper: border-box
+          padding on the flex child itself would floor its height at ~24px.
+          inert (string form — React 18 lacks the boolean prop) keeps the
+          hidden tree's toggle buttons out of the tab order. */}
+      <div
+        aria-hidden={!expanded}
+        {...(expanded ? {} : { inert: '' })}
+        className="min-h-0 flex-1 overflow-auto bg-white dark:bg-neutral-950"
+      >
+        <div className="px-4 py-3">
           <JsonTree value={built} />
         </div>
-      )}
+      </div>
     </section>
   );
 }
