@@ -81,6 +81,9 @@ type StoreState = {
   // Toggle a block's disabled flag — disabled blocks are dropped from the
   // generated query (top-level or nested) but stay in the builder.
   toggleBlockDisabled: (blockId: string) => void;
+  // Toggle a single clause (item) on/off — disabled clauses are dropped from
+  // the generated query but stay in the builder.
+  toggleItemDisabled: (instanceId: string) => void;
 
   addTemplateToBlock: (blockId: string, templateId: string, atIndex?: number) => string | null;
   addCustomToBlock: (
@@ -356,6 +359,24 @@ export const useStore = create<StoreState>()(
             b.disabled ? { ...b, disabled: undefined } : { ...b, disabled: true }
           ),
         }));
+      },
+
+      toggleItemDisabled: (instanceId) => {
+        set((s) => {
+          const loc = locateItem(s.blocks, instanceId);
+          if (!loc) return s;
+          return {
+            blocks: updateBlockById(s.blocks, loc.parentBlockId, (b) => {
+              const idx = b.items.findIndex((x) => x.instanceId === instanceId);
+              if (idx < 0) return b;
+              const items = [...b.items];
+              const it = items[idx];
+              // true-or-absent, like block disable.
+              items[idx] = it.disabled ? { ...it, disabled: undefined } : { ...it, disabled: true };
+              return { ...b, items };
+            }),
+          };
+        });
       },
 
       reorderBlocks: (fromIndex, toIndex) => {
@@ -1095,6 +1116,7 @@ function makeBoolInnerWithMap(
       if (!path) continue;
       const innerClauses: Array<Record<string, unknown>> = [];
       for (const item of block.items) {
+        if (item.disabled) continue;
         const q = resolveItemWithMap(byId, item);
         if (q) innerClauses.push(q);
       }
@@ -1103,6 +1125,7 @@ function makeBoolInnerWithMap(
       buckets[block.mode].push({ nested: { path, query: innerBool } });
     } else {
       for (const item of block.items) {
+        if (item.disabled) continue;
         const q = resolveItemWithMap(byId, item);
         if (q) buckets[block.mode].push(q);
       }

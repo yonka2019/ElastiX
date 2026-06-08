@@ -15,6 +15,10 @@
 
 export function makeTemplatesRemoteHandler(env) {
   const baseUrl = (env.TEMPLATES_REMOTE_URL || '').trim().replace(/\/+$/, '');
+  // Optional bearer token for the remote service. Provided via env (in K8s,
+  // typically from a ConfigMap/Secret). When set, the proxy sends
+  // `Authorization: Bearer <token>` on every upstream request.
+  const authToken = (env.TEMPLATES_REMOTE_TOKEN || '').trim();
 
   function json(res, status, body) {
     res.statusCode = status;
@@ -39,9 +43,16 @@ export function makeTemplatesRemoteHandler(env) {
     if (!name) return json(res, 400, { error: 'Missing "name" query parameter.' });
 
     const target = `${baseUrl}/${encodeURIComponent(name)}`;
+    const headers = { accept: 'application/json' };
+    if (authToken) headers.authorization = `Bearer ${authToken}`;
     try {
-      const upstream = await fetch(target, { headers: { accept: 'application/json' } });
+      const upstream = await fetch(target, { headers });
       const text = await upstream.text();
+      if (upstream.status === 401 || upstream.status === 403) {
+        return json(res, 502, {
+          error: `Remote auth failed (HTTP ${upstream.status})${authToken ? '' : ' — set TEMPLATES_REMOTE_TOKEN'}`,
+        });
+      }
       if (upstream.status === 404) {
         // The remote has no query by this name — surface it as a clean 404 so
         // the UI can say "not found" rather than a generic gateway error.

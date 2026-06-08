@@ -87,6 +87,16 @@ spec:
           #     value: elastix                    # default
           #   - name: MONGO_TEMPLATES_COLLECTION
           #     value: templates                  # default
+          # Remote query service ("Fetch from <name>" button). The proxy calls
+          # ${TEMPLATES_REMOTE_URL}/<name> and, if a token is set, sends
+          # Authorization: Bearer <token>.
+          #   - name: TEMPLATES_REMOTE_URL
+          #     value: https://ruletta.example.com/queries
+          #   - name: TEMPLATES_REMOTE_NAME
+          #     value: Ruletta                    # button label; default "remote"
+          #   - name: TEMPLATES_REMOTE_TOKEN      # bearer token (Secret preferred)
+          #     valueFrom:
+          #       configMapKeyRef: { name: elastix-ruletta, key: token }
           ports:
             - containerPort: 4000
               name: http

@@ -35,6 +35,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
   const updateMatchItem = useStore((s) => s.updateMatchItem);
   const updateTermsItem = useStore((s) => s.updateTermsItem);
   const updateExistsItem = useStore((s) => s.updateExistsItem);
+  const toggleItemDisabled = useStore((s) => s.toggleItemDisabled);
   const pendingEditId = useStore((s) => s.pendingEditId);
   const { open: openPreview } = usePreview();
   const setPendingEditId = useStore((s) => s.setPendingEditId);
@@ -56,10 +57,16 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
     disabled: editing,
   });
 
+  const itemDisabled = item.disabled === true;
   const style = {
     transform: CSS.Translate.toString(transform),
-    transition,
-    opacity: isDragging ? 0.4 : 1,
+    // Merge dnd-kit's transform transition with the disable tween so toggling
+    // a clause animates its fade/desaturate/gray-tint instead of snapping.
+    // (The inline `transition` would otherwise override the className's.)
+    transition: [transition, 'opacity 250ms ease, filter 250ms ease, background-color 250ms ease']
+      .filter(Boolean)
+      .join(', '),
+    opacity: isDragging ? 0.4 : itemDisabled ? 0.7 : 1,
   };
 
   // Bool items are rendered as BlockCard by the parent; this row is leaf-only.
@@ -281,7 +288,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
     <div
       ref={setNodeRef}
       style={style}
-      className="drop-in group relative flex select-none items-center gap-3 overflow-hidden rounded-md border border-neutral-200 bg-white pl-3 pr-3 py-2.5 shadow-sm transition-all hover:border-neutral-300 hover:shadow dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
+      className={`drop-in group relative flex select-none items-center gap-3 overflow-hidden rounded-md border border-neutral-200 pl-3 pr-3 py-2.5 shadow-sm transition-all hover:border-neutral-300 hover:shadow dark:border-neutral-800 dark:hover:border-neutral-700 ${itemDisabled ? 'bg-neutral-100 grayscale dark:bg-neutral-800/60' : 'bg-white dark:bg-neutral-900'}`}
     >
       <span
         className={`absolute left-0 top-0 h-full w-1 ${isSubbed ? meta.barSub : meta.bar}`}
@@ -301,7 +308,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">{label}</span>
+          <span className={`truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100 ${itemDisabled ? 'line-through decoration-neutral-400' : ''}`}>{label}</span>
           {isTemplate && (
             <span
               className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 font-mono text-[10px] text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300"
@@ -413,6 +420,32 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
       </div>
 
       <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleItemDisabled(item.instanceId);
+          }}
+          className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+          title={itemDisabled ? 'Enable clause (include in query)' : 'Disable clause (exclude from query)'}
+          aria-label={itemDisabled ? 'Enable clause' : 'Disable clause'}
+          aria-pressed={itemDisabled}
+        >
+          {itemDisabled ? (
+            // toggle-left, hollow knob — excluded; click to include
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <rect x="2" y="6" width="20" height="12" rx="6" />
+              <circle cx="8" cy="12" r="3" />
+            </svg>
+          ) : (
+            // toggle-right, filled knob — included; click to exclude
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <rect x="2" y="6" width="20" height="12" rx="6" />
+              <circle cx="16" cy="12" r="3" fill="currentColor" stroke="none" />
+            </svg>
+          )}
+        </button>
         {(() => {
           const previewValue = resolveItem(Array.from(templatesById.values()), item);
           const previewDisabled = previewValue === undefined;

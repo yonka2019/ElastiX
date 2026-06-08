@@ -143,6 +143,10 @@ export type BuilderSource =
 export type BuilderItem = {
   instanceId: string;
   source: BuilderSource;
+  // When true, this clause is excluded from the generated query but stays in
+  // the builder. Toggled per-row; absent = enabled. (Block-level disable lives
+  // on ModeBlock.disabled.)
+  disabled?: boolean;
 };
 
 export type BuilderSections = Record<BoolMode, BuilderItem[]>;
