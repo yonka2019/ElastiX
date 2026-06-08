@@ -46,10 +46,12 @@ function BlockCardImpl({
   const removeItem = useStore((s) => s.removeItem);
   const removeBlock = useStore((s) => s.removeBlock);
   const renameBlock = useStore((s) => s.renameBlock);
+  const toggleBlockDisabled = useStore((s) => s.toggleBlockDisabled);
   const setBlockPath = useStore((s) => s.setBlockPath);
   const templates = useStore((s) => s.templates);
   const { open: openPreview } = usePreview();
   const isNested = block.nested !== undefined;
+  const disabled = block.disabled === true;
   const headerGradient = isNested
     ? 'bg-gradient-to-r from-orange-600 to-orange-500'
     : meta.headerSolid;
@@ -106,8 +108,14 @@ function BlockCardImpl({
 
   const style = {
     transform: CSS.Translate.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
+    // Combine dnd-kit's transform transition with a fade + desaturate tween so
+    // toggling a block's disabled state animates instead of snapping. Opacity
+    // lives here (not as a Tailwind class) because this inline style would
+    // otherwise override an `opacity-*` class.
+    transition: [transition, 'opacity 300ms ease, filter 300ms ease']
+      .filter(Boolean)
+      .join(', '),
+    opacity: isDragging ? 0.5 : disabled ? 0.55 : 1,
   };
 
   const empty = block.items.length === 0;
@@ -135,6 +143,10 @@ function BlockCardImpl({
         targetedFromHeader
           ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800'
           : 'border-neutral-200 dark:border-neutral-800',
+        // Disabled: desaturate so it reads as "off" at a glance (the fade is
+        // applied via inline opacity in `style` so it can animate). The toggle
+        // button stays usable so it can be switched back on.
+        disabled ? 'grayscale' : '',
       ].join(' ')}
     >
       {targetedFromHeader && (
@@ -231,6 +243,14 @@ function BlockCardImpl({
                 nested
               </span>
             )}
+            {disabled && (
+              <span
+                className="rounded-full border border-white/50 bg-white/25 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-white"
+                title="Excluded from the generated query"
+              >
+                disabled
+              </span>
+            )}
           </div>
         </div>
         {targetedFromHeader && (
@@ -238,6 +258,32 @@ function BlockCardImpl({
             ↳ drop into {displayName}
           </span>
         )}
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleBlockDisabled(block.id);
+          }}
+          className="rounded p-1 text-white/70 hover:bg-white/20 hover:text-white"
+          title={disabled ? 'Enable block (include in query)' : 'Disable block (exclude from query)'}
+          aria-label={disabled ? 'Enable block' : 'Disable block'}
+          aria-pressed={disabled}
+        >
+          {disabled ? (
+            // toggle-left, hollow knob — currently excluded; click to include
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <rect x="2" y="6" width="20" height="12" rx="6" />
+              <circle cx="8" cy="12" r="3" />
+            </svg>
+          ) : (
+            // toggle-right, filled knob — currently included; click to exclude
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <rect x="2" y="6" width="20" height="12" rx="6" />
+              <circle cx="16" cy="12" r="3" fill="currentColor" stroke="none" />
+            </svg>
+          )}
+        </button>
         <button
           type="button"
           onPointerDown={(e) => e.stopPropagation()}

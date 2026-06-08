@@ -41,6 +41,13 @@ export type ElastixConfig = {
   indexPattern: string;
   dataViewId: string;
   ready: boolean;
+  // Whether the server has TEMPLATES_REMOTE_URL configured — gates the
+  // Templates panel's "Fetch from …" button. Read at runtime from
+  // /api/config (not a build-time VITE_ var).
+  templatesRemote: boolean;
+  // Display name of the remote query service (TEMPLATES_REMOTE_NAME). Drives
+  // the button label "Fetch from {name}". Empty → the UI defaults to "remote".
+  templatesRemoteName: string;
 };
 
 type StoreState = {
@@ -71,9 +78,19 @@ type StoreState = {
   reorderBlocks: (fromIndex: number, toIndex: number) => void;
   // Set or clear the block's custom name (empty string clears it).
   renameBlock: (blockId: string, name: string) => void;
+  // Toggle a block's disabled flag — disabled blocks are dropped from the
+  // generated query (top-level or nested) but stay in the builder.
+  toggleBlockDisabled: (blockId: string) => void;
 
   addTemplateToBlock: (blockId: string, templateId: string, atIndex?: number) => string | null;
   addCustomToBlock: (
+    blockId: string,
+    payload: { name: string; query: Record<string, unknown> },
+    atIndex?: number
+  ) => string | null;
+  // Read-only query fetched from the remote service (Ruletta). Embeds its own
+  // query like custom, but is not editable in the builder.
+  addRemoteToBlock: (
     blockId: string,
     payload: { name: string; query: Record<string, unknown> },
     atIndex?: number
@@ -231,7 +248,7 @@ export const useStore = create<StoreState>()(
       templatesError: null,
       blocks: [],
       pendingEditId: null,
-      config: { kibanaUrl: '', indexPattern: '*', dataViewId: '', ready: false },
+      config: { kibanaUrl: '', indexPattern: '*', dataViewId: '', ready: false, templatesRemote: false, templatesRemoteName: '' },
       autoCount: readStoredAutoCount(),
       queryTitle: '',
 
@@ -257,6 +274,8 @@ export const useStore = create<StoreState>()(
               indexPattern: cfg.indexPattern ?? '*',
               dataViewId: cfg.dataViewId ?? '',
               ready: Boolean(cfg.ready),
+              templatesRemote: Boolean(cfg.templatesRemote),
+              templatesRemoteName: cfg.templatesRemoteName ?? '',
             },
           });
         } catch {
@@ -330,6 +349,15 @@ export const useStore = create<StoreState>()(
         }));
       },
 
+      toggleBlockDisabled: (blockId) => {
+        set((s) => ({
+          blocks: updateBlockById(s.blocks, blockId, (b) =>
+            // Stored as true-or-absent (never false) to keep persisted state clean.
+            b.disabled ? { ...b, disabled: undefined } : { ...b, disabled: true }
+          ),
+        }));
+      },
+
       reorderBlocks: (fromIndex, toIndex) => {
         set((s) => {
           if (fromIndex === toIndex) return s;
@@ -370,6 +398,22 @@ export const useStore = create<StoreState>()(
             const item: BuilderItem = {
               instanceId,
               source: { kind: 'custom', name, query },
+            };
+            return { ...b, items: insertAt(b.items, item, atIndex) };
+          }),
+        }));
+        return added ? instanceId : null;
+      },
+
+      addRemoteToBlock: (blockId, { name, query }, atIndex) => {
+        const instanceId = uuidv4();
+        let added = false;
+        set((s) => ({
+          blocks: updateBlockById(s.blocks, blockId, (b) => {
+            added = true;
+            const item: BuilderItem = {
+              instanceId,
+              source: { kind: 'remote', name, query },
             };
             return { ...b, items: insertAt(b.items, item, atIndex) };
           }),
@@ -538,10 +582,16 @@ export const useStore = create<StoreState>()(
                 ...existing,
                 source: {
                   kind: 'timestamp',
-                  title: patch.title !== undefined ? patch.title || undefined : existing.source.title,
+                  // Key-presence (`in`) not `!== undefined`: the form always
+                  // sends gte/lte/title, and an explicit `undefined` means
+                  // "the user cleared this bound". A `!== undefined` check
+                  // would treat that as "unchanged" and silently restore the
+                  // old value — so a cleared gte/lte sprang back (the reported
+                  // "can't leave one empty" bug).
+                  title: 'title' in patch ? patch.title || undefined : existing.source.title,
                   field: patch.field ?? existing.source.field,
-                  gte: patch.gte !== undefined ? patch.gte : existing.source.gte,
-                  lte: patch.lte !== undefined ? patch.lte : existing.source.lte,
+                  gte: 'gte' in patch ? patch.gte : existing.source.gte,
+                  lte: 'lte' in patch ? patch.lte : existing.source.lte,
                 },
               };
               return { ...b, items };
@@ -984,6 +1034,7 @@ function resolveItemWithMap(
 ): Record<string, unknown> | undefined {
   if (item.source.kind === 'template') return byId.get(item.source.templateId)?.query;
   if (item.source.kind === 'custom') return item.source.query;
+  if (item.source.kind === 'remote') return item.source.query;
   if (item.source.kind === 'timestamp') {
     const bounds: Record<string, unknown> = {};
     if (item.source.gte) bounds.gte = item.source.gte;
@@ -1032,6 +1083,10 @@ function makeBoolInnerWithMap(
     must_not: [],
   };
   for (const block of bs) {
+    // Disabled blocks contribute nothing. A disabled nested-bool block
+    // resolves to {} here → resolveItemWithMap returns undefined → the
+    // wrapping item is skipped too, so the whole subtree drops out.
+    if (block.disabled) continue;
     if (block.nested) {
       // Nested block: build the inner clauses as a bool of items combined
       // under the block's own mode, wrap in {nested: ...}, and contribute
@@ -1073,7 +1128,10 @@ export function buildBlockQuery(
   block: ModeBlock
 ): Record<string, unknown> {
   const byId = new Map(templates.map((t) => [t.id, t]));
-  const inner = makeBoolInnerWithMap(byId, [block]);
+  // The per-block JSON preview should show what the block emits even when it
+  // is disabled — clear the flag on the target block only (its disabled
+  // children stay excluded, matching what an enabled block would contribute).
+  const inner = makeBoolInnerWithMap(byId, [{ ...block, disabled: undefined }]);
   return { bool: inner };
 }
 

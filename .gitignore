@@ -6,3 +6,8 @@ dist
 .env
 .env.local
 .env.*.local
+
+# Playwright CLI / MCP scratch — snapshots, console logs, screenshots
+.playwright-cli/
+.playwright-mcp/
+.pw/

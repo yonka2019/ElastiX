@@ -66,6 +66,10 @@ type ActiveDrag =
   | PaletteLeafDrag
   | { kind: 'block'; blockId: string; mode: BoolMode }
   | { kind: 'template'; templateId: string }
+  // A query pulled from the remote service (TemplateLibrary). Carries its own
+  // name + query so the drop handler can add it as a self-contained custom
+  // clause without any catalog lookup.
+  | { kind: 'fetched'; id: string; name: string; query: Record<string, unknown> }
   | { kind: 'item'; instanceId: string; sectionMode: BoolMode }
   | null;
 
@@ -77,6 +81,7 @@ export default function App() {
   const reorderBlocks = useStore((s) => s.reorderBlocks);
   const addTemplateToBlock = useStore((s) => s.addTemplateToBlock);
   const addCustomToBlock = useStore((s) => s.addCustomToBlock);
+  const addRemoteToBlock = useStore((s) => s.addRemoteToBlock);
   const addTimestampToBlock = useStore((s) => s.addTimestampToBlock);
   const addTermToBlock = useStore((s) => s.addTermToBlock);
   const addTermsToBlock = useStore((s) => s.addTermsToBlock);
@@ -203,6 +208,7 @@ export default function App() {
       activeKind === 'palette-block' ||
       activeKind === 'palette-leaf' ||
       activeKind === 'template' ||
+      activeKind === 'fetched' ||
       activeKind === 'item' ||
       activeKind === 'block';
 
@@ -322,6 +328,7 @@ export default function App() {
       | PaletteLeafDrag
       | { kind: 'block'; blockId: string; mode: BoolMode }
       | { kind: 'template'; templateId: string }
+      | { kind: 'fetched'; id: string; name: string; query: Record<string, unknown> }
       | { kind: 'item'; instanceId: string; sectionMode: BoolMode }
       | undefined;
     const overData = over.data.current as
@@ -509,6 +516,30 @@ export default function App() {
       return;
     }
 
+    // 4b) Fetched remote query → drop into a block as a self-contained custom
+    //     clause. Mirrors the template branch but embeds name + query, so it
+    //     survives reloads (no dependency on a session-only catalog entry).
+    if (activeData.kind === 'fetched') {
+      const payload = { name: activeData.name, query: activeData.query };
+      if (overData.kind === 'block-zone' || overData.kind === 'block') {
+        addRemoteToBlock(overData.blockId, payload);
+        return;
+      }
+      if (overData.kind === 'item') {
+        const item = getItem(blocks, overData.instanceId);
+        if (item?.source.kind === 'bool') {
+          addRemoteToBlock(item.source.block.id, payload);
+          return;
+        }
+        const containing = blockContaining(blocks, overData.instanceId);
+        if (containing) {
+          const loc = locateItemPublic(blocks, overData.instanceId);
+          addRemoteToBlock(containing.id, payload, loc?.index);
+        }
+      }
+      return;
+    }
+
     // 4) Item drag — reorder within block, or move to another block (any depth).
     if (activeData.kind === 'item') {
       // Dropping a nested bool item on the empty canvas promotes it to a
@@ -567,6 +598,13 @@ export default function App() {
       return (
         <div className="max-w-[260px] truncate rounded-full border border-blue-200 bg-white px-3 py-1.5 text-sm font-semibold text-neutral-900 shadow-xl ring-2 ring-blue-200 dark:border-blue-800 dark:bg-neutral-900 dark:text-neutral-100 dark:ring-blue-800">
           {t.name}
+        </div>
+      );
+    }
+    if (activeDrag.kind === 'fetched') {
+      return (
+        <div className="max-w-[260px] truncate rounded-full border border-purple-300 bg-white px-3 py-1.5 text-sm font-semibold text-neutral-900 shadow-xl ring-2 ring-purple-200 dark:border-purple-700 dark:bg-neutral-900 dark:text-neutral-100 dark:ring-purple-800">
+          {activeDrag.name}
         </div>
       );
     }
@@ -664,7 +702,7 @@ export default function App() {
       if (item.source.kind === 'template') {
         const { templateId } = item.source;
         name = templates.find((t) => t.id === templateId)?.name ?? 'unknown';
-      } else if (item.source.kind === 'custom') {
+      } else if (item.source.kind === 'custom' || item.source.kind === 'remote') {
         name = item.source.name;
       } else if (item.source.kind === 'timestamp') {
         name = item.source.title || `${item.source.field} range`;
@@ -755,12 +793,19 @@ export default function App() {
                 activeDrag?.kind === 'palette-block' ||
                 activeDrag?.kind === 'palette-leaf' ||
                 activeDrag?.kind === 'palette-block-nested' ||
-                activeDrag?.kind === 'template'
+                activeDrag?.kind === 'template' ||
+                activeDrag?.kind === 'fetched'
               }
             />
           </div>
           <TemplateLibrary
-            activeDragId={activeDrag?.kind === 'template' ? `tpl:${activeDrag.templateId}` : null}
+            activeDragId={
+              activeDrag?.kind === 'template'
+                ? `tpl:${activeDrag.templateId}`
+                : activeDrag?.kind === 'fetched'
+                ? `fetched:${activeDrag.id}`
+                : null
+            }
             dragDisabled={blocks.length === 0}
           />
         </div>

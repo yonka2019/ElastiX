@@ -123,6 +123,11 @@ export type Template = {
 export type BuilderSource =
   | { kind: 'template'; templateId: string }
   | { kind: 'custom'; name: string; query: Record<string, unknown> }
+  // A query fetched from the remote service (Ruletta). Like `custom` it embeds
+  // its own query so it survives reloads, but it is READ-ONLY — rendered like a
+  // template with no inline editor, since it represents an externally-owned
+  // saved query rather than something hand-edited here.
+  | { kind: 'remote'; name: string; query: Record<string, unknown> }
   | { kind: 'timestamp'; title?: string; field: string; gte?: string; lte?: string }
   // `numeric` (term/terms): see the terms comment below — numeric-looking
   // values are emitted as JSON numbers at query-build time.
@@ -156,4 +161,9 @@ export type ModeBlock = {
   // wrapped: { nested: { path, query: { bool: ... } } }. The whole block
   // contributes as a single clause to the parent's `mode` bucket.
   nested?: { path: string };
+  // When true, the block is excluded from the generated query entirely —
+  // both top-level and nested. Absent = enabled. The per-block JSON preview
+  // (the header eye) still shows the block's query regardless, so a disabled
+  // block can be inspected. Persisted with the builder state.
+  disabled?: boolean;
 };

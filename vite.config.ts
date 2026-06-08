@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, type Plugin, type ViteDevServer } from 'vite';
 import react from '@vitejs/plugin-react';
 import { makeElasticHandlers } from './server/elasticApi.js';
 import { makeTemplatesHandler } from './server/templatesApi.js';
+import { makeTemplatesRemoteHandler } from './server/templatesRemoteApi.js';
 
 // Dev-only middleware that exposes:
 //   GET  /api/config    → { kibanaUrl, indexPattern, ready }  for the frontend
@@ -13,12 +14,14 @@ import { makeTemplatesHandler } from './server/templatesApi.js';
 function elasticDevApi(env: Record<string, string>): Plugin {
   const { handleConfig, handleCount } = makeElasticHandlers(env);
   const { handleTemplates } = makeTemplatesHandler(env);
+  const { handleTemplatesRemote } = makeTemplatesRemoteHandler(env);
   return {
     name: 'elastix:dev-api',
     configureServer(server: ViteDevServer) {
       server.middlewares.use('/api/config', handleConfig);
       server.middlewares.use('/api/count', handleCount);
       server.middlewares.use('/api/templates', handleTemplates);
+      server.middlewares.use('/api/templates-remote', handleTemplatesRemote);
     },
   };
 }

@@ -18,9 +18,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeElasticHandlers } from './server/elasticApi.js';
 import { makeTemplatesHandler } from './server/templatesApi.js';
+import { makeTemplatesRemoteHandler } from './server/templatesRemoteApi.js';
 
 const { handleConfig, handleCount } = makeElasticHandlers(process.env);
 const { handleTemplates, closeTemplates } = makeTemplatesHandler(process.env);
+const { handleTemplatesRemote } = makeTemplatesRemoteHandler(process.env);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = path.join(__dirname, 'web');
@@ -97,6 +99,9 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === '/api/templates') {
     return handleTemplates(req, res);
+  }
+  if (pathname === '/api/templates-remote') {
+    return handleTemplatesRemote(req, res);
   }
 
   if (req.method !== 'GET' && req.method !== 'HEAD') {

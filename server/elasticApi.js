@@ -23,6 +23,13 @@ export function makeElasticHandlers(env) {
     : '';
 
   const ready = Boolean(elasticUrl && authHeader);
+  // Whether the remote-query proxy is configured (see templatesRemoteApi.js).
+  // Surfaced to the browser so the Templates panel can enable/disable its
+  // "Fetch from …" button at runtime — no VITE_ build-time baking.
+  const templatesRemote = Boolean((env.TEMPLATES_REMOTE_URL || '').trim());
+  // Display name of the remote service, shown in the button ("Fetch from
+  // <name>"). Empty → the UI falls back to "remote".
+  const templatesRemoteName = (env.TEMPLATES_REMOTE_NAME || '').trim();
 
   function json(res, status, body) {
     res.statusCode = status;
@@ -40,7 +47,7 @@ export function makeElasticHandlers(env) {
   }
 
   function handleConfig(_req, res) {
-    json(res, 200, { kibanaUrl, indexPattern, dataViewId, ready });
+    json(res, 200, { kibanaUrl, indexPattern, dataViewId, ready, templatesRemote, templatesRemoteName });
   }
 
   async function handleCount(req, res) {

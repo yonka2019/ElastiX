@@ -179,6 +179,9 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
   const isMatch = item.source.kind === 'match';
   const isTerms = item.source.kind === 'terms';
   const isExists = item.source.kind === 'exists';
+  // Remote (Ruletta) clauses embed their query like custom, but are read-only
+  // — rendered like a template, with no inline editor. So NOT in `editable`.
+  const isRemote = item.source.kind === 'remote';
   const editable = isCustom || isTimestamp || isTerm || isMatch || isTerms || isExists;
 
   let label: string;
@@ -198,6 +201,9 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
       queryPreview = JSON.stringify(t.query);
     }
   } else if (item.source.kind === 'custom') {
+    label = item.source.name;
+    queryPreview = JSON.stringify(item.source.query);
+  } else if (item.source.kind === 'remote') {
     label = item.source.name;
     queryPreview = JSON.stringify(item.source.query);
   } else if (item.source.kind === 'timestamp') {
@@ -322,6 +328,19 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
               custom
             </span>
           )}
+          {isRemote && (
+            <span
+              className="inline-flex items-center gap-1 rounded border border-purple-200 bg-purple-50 px-1.5 py-0.5 font-mono text-[10px] text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-300"
+              title="Read-only query fetched from the remote service"
+            >
+              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18" />
+                <path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z" />
+              </svg>
+              remote
+            </span>
+          )}
           {isTimestamp && (
             <span
               className="inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 font-mono text-[10px] text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
@@ -400,7 +419,7 @@ export function BuilderRow({ item, sectionMode, templatesById, index, onRemove, 
           const previewTitle =
             item.source.kind === 'template'
               ? (templatesById.get(item.source.templateId)?.name ?? 'template')
-              : item.source.kind === 'custom'
+              : item.source.kind === 'custom' || item.source.kind === 'remote'
               ? item.source.name
               : item.source.kind;
           return (
