@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useStore, totalItemCount } from '../store';
+import { useSmoothWheel } from '../utils/smoothWheel';
 import { BlockCard } from './BlockCard';
 
 type Props = {
@@ -9,6 +10,9 @@ type Props = {
   isDraggingPaletteBlock: boolean;
   isDraggingItem: boolean;
   isDraggingIntoBlock: boolean;
+  // True whenever ANY drag is in flight. The smooth-wheel animation stands
+  // down while dragging so @dnd-kit's edge autoscroll owns scrollTop alone.
+  isDragging: boolean;
 };
 
 export function Builder({
@@ -16,6 +20,7 @@ export function Builder({
   isDraggingPaletteBlock,
   isDraggingItem,
   isDraggingIntoBlock,
+  isDragging,
 }: Props) {
   const blocks = useStore((s) => s.blocks);
   const templates = useStore((s) => s.templates);
@@ -33,10 +38,22 @@ export function Builder({
     data: { kind: 'builder-canvas' },
   });
 
+  // The scroll container is both @dnd-kit's droppable node and the element the
+  // smooth-wheel hook drives — merge our own ref into dnd-kit's callback ref.
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const setScrollRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      scrollRef.current = node;
+      setNodeRef(node);
+    },
+    [setNodeRef]
+  );
+  useSmoothWheel(scrollRef, { disabled: () => isDragging });
+
   const empty = blocks.length === 0;
 
   return (
-    <section className="flex flex-1 flex-col bg-neutral-50 md:h-full dark:bg-neutral-950">
+    <section className="flex flex-1 flex-col bg-neutral-50 md:min-h-0 dark:bg-neutral-950">
       <div className="flex items-center justify-between border-b border-neutral-200 bg-white px-3 py-2 sm:px-5 sm:py-3 dark:border-neutral-800 dark:bg-neutral-900">
         <div>
           <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Builder</div>
@@ -62,7 +79,7 @@ export function Builder({
       </div>
 
       <div
-        ref={setNodeRef}
+        ref={setScrollRef}
         className="min-h-[40vh] px-3 py-4 pb-10 sm:px-5 sm:py-5 md:min-h-0 md:flex-1 md:overflow-y-auto"
       >
         {empty ? (
