@@ -786,7 +786,6 @@ export default function App() {
           <div className="enter enter-d2 flex min-w-0 flex-1 flex-col md:min-h-0">
             <QueryOutput />
             <Builder
-              isDragging={activeDrag !== null}
               isDraggingTemplate={activeDrag?.kind === 'template'}
               isDraggingPaletteBlock={activeDrag?.kind === 'palette-block'}
               isDraggingItem={activeDrag?.kind === 'item'}

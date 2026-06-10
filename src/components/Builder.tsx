@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useStore, totalItemCount } from '../store';
-import { useSmoothWheel } from '../utils/smoothWheel';
 import { BlockCard } from './BlockCard';
 
 type Props = {
@@ -10,9 +9,6 @@ type Props = {
   isDraggingPaletteBlock: boolean;
   isDraggingItem: boolean;
   isDraggingIntoBlock: boolean;
-  // True whenever ANY drag is in flight. The smooth-wheel animation stands
-  // down while dragging so @dnd-kit's edge autoscroll owns scrollTop alone.
-  isDragging: boolean;
 };
 
 export function Builder({
@@ -20,7 +16,6 @@ export function Builder({
   isDraggingPaletteBlock,
   isDraggingItem,
   isDraggingIntoBlock,
-  isDragging,
 }: Props) {
   const blocks = useStore((s) => s.blocks);
   const templates = useStore((s) => s.templates);
@@ -37,18 +32,6 @@ export function Builder({
     id: 'builder-canvas',
     data: { kind: 'builder-canvas' },
   });
-
-  // The scroll container is both @dnd-kit's droppable node and the element the
-  // smooth-wheel hook drives — merge our own ref into dnd-kit's callback ref.
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const setScrollRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      scrollRef.current = node;
-      setNodeRef(node);
-    },
-    [setNodeRef]
-  );
-  useSmoothWheel(scrollRef, { disabled: () => isDragging });
 
   const empty = blocks.length === 0;
 
@@ -79,7 +62,7 @@ export function Builder({
       </div>
 
       <div
-        ref={setScrollRef}
+        ref={setNodeRef}
         className="min-h-[40vh] px-3 py-4 pb-10 sm:px-5 sm:py-5 md:min-h-0 md:flex-1 md:overflow-y-auto"
       >
         {empty ? (
