@@ -52,8 +52,17 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       const raw = Buffer.concat(chunks).toString('utf8');
       console.log(`[mock-remote] cobrun body: ${raw}`);
+      let received;
+      try {
+        received = JSON.parse(raw || '{}');
+      } catch {
+        // Direct (non-proxied) garbage must not kill the mock process.
+        res.statusCode = 400;
+        res.end(JSON.stringify({ error: 'invalid JSON' }));
+        return;
+      }
       res.statusCode = 200;
-      res.end(JSON.stringify({ ok: true, id: 'cobrun-mock-1', received: JSON.parse(raw || '{}') }));
+      res.end(JSON.stringify({ ok: true, id: 'cobrun-mock-1', received }));
     });
     return;
   }
