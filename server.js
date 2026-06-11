@@ -24,7 +24,7 @@ import { makeCobrunHandler } from './server/cobrunApi.js';
 const { handleConfig, handleCount } = makeElasticHandlers(process.env);
 const { handleTemplates, closeTemplates } = makeTemplatesHandler(process.env);
 const { handleTemplatesRemote } = makeTemplatesRemoteHandler(process.env);
-const { handleCobrun } = makeCobrunHandler(process.env);
+const { handleCobrun, handleCobrunActions, handleCobrunPriorities } = makeCobrunHandler(process.env);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = path.join(__dirname, 'web');
@@ -107,6 +107,12 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === '/api/cobrun') {
     return handleCobrun(req, res);
+  }
+  if (pathname === '/api/cobrun-actions') {
+    return handleCobrunActions(req, res);
+  }
+  if (pathname === '/api/cobrun-priorities') {
+    return handleCobrunPriorities(req, res);
   }
 
   if (req.method !== 'GET' && req.method !== 'HEAD') {

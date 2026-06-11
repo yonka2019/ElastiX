@@ -38,6 +38,15 @@ export function makeElasticHandlers(env) {
   const cobrunAuth = Boolean((env.COBRUN_PASSWORD || '').trim());
   // Whether delete cobruns have their own password (COBRUN_DELETE_PASSWORD).
   const cobrunDeleteAuth = Boolean((env.COBRUN_DELETE_PASSWORD || '').trim());
+  // Whether the cobrun action catalog is configured (COBRUN_ACTION_LIST_URL).
+  // When true the UI's Action field is a dropdown fed by /api/cobrun-actions.
+  const cobrunActions = Boolean((env.COBRUN_ACTION_LIST_URL || '').trim());
+  // Same for the priority catalog (COBRUN_PRIORITY_LIST_URL →
+  // /api/cobrun-priorities → Priority dropdown).
+  const cobrunPriorities = Boolean((env.COBRUN_PRIORITY_LIST_URL || '').trim());
+  // Name shown in the bottom-right "by <name>" corner credit. Empty → the
+  // UI falls back to its built-in default.
+  const byName = (env.BY_NAME || '').trim();
 
   function json(res, status, body) {
     res.statusCode = status;
@@ -55,7 +64,7 @@ export function makeElasticHandlers(env) {
   }
 
   function handleConfig(_req, res) {
-    json(res, 200, { kibanaUrl, indexPattern, dataViewId, ready, templatesRemote, templatesRemoteName, cobrun, cobrunAuth, cobrunDeleteAuth });
+    json(res, 200, { kibanaUrl, indexPattern, dataViewId, ready, templatesRemote, templatesRemoteName, cobrun, cobrunAuth, cobrunDeleteAuth, cobrunActions, cobrunPriorities, byName });
   }
 
   async function handleCount(req, res) {

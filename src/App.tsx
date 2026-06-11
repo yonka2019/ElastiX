@@ -77,6 +77,9 @@ type ActiveDrag =
 export default function App() {
   const templates = useStore((s) => s.templates);
   const blocks = useStore((s) => s.blocks);
+  // "by <name>" corner credit — name comes from BY_NAME server-side
+  // (via /api/config); unset → the original "yonka".
+  const byName = useStore((s) => s.config.byName) || 'yonka';
   const addBlock = useStore((s) => s.addBlock);
   const addNestedBlock = useStore((s) => s.addNestedBlock);
   const reorderBlocks = useStore((s) => s.reorderBlocks);
@@ -829,7 +832,7 @@ export default function App() {
           <span className="yonka-corner pointer-events-auto relative inline-block cursor-default">
             <span className="yonka-word">
               <RainbowText text="by " />
-              <RainbowText text="yonka" startIndex={2} />
+              <RainbowText text={byName} startIndex={2} />
             </span>
           </span>
         </div>

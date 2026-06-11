@@ -16,7 +16,7 @@ function elasticDevApi(env: Record<string, string>): Plugin {
   const { handleConfig, handleCount } = makeElasticHandlers(env);
   const { handleTemplates } = makeTemplatesHandler(env);
   const { handleTemplatesRemote } = makeTemplatesRemoteHandler(env);
-  const { handleCobrun } = makeCobrunHandler(env);
+  const { handleCobrun, handleCobrunActions, handleCobrunPriorities } = makeCobrunHandler(env);
   return {
     name: 'elastix:dev-api',
     configureServer(server: ViteDevServer) {
@@ -25,6 +25,8 @@ function elasticDevApi(env: Record<string, string>): Plugin {
       server.middlewares.use('/api/templates', handleTemplates);
       server.middlewares.use('/api/templates-remote', handleTemplatesRemote);
       server.middlewares.use('/api/cobrun', handleCobrun);
+      server.middlewares.use('/api/cobrun-actions', handleCobrunActions);
+      server.middlewares.use('/api/cobrun-priorities', handleCobrunPriorities);
     },
   };
 }

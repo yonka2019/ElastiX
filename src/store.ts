@@ -57,6 +57,16 @@ export type ElastixConfig = {
   // Whether delete cobruns require their own separate password
   // (COBRUN_DELETE_PASSWORD set server-side).
   cobrunDeleteAuth: boolean;
+  // Whether the cobrun action catalog is configured (COBRUN_ACTION_LIST_URL
+  // set server-side). When true the Create Cobrun form's Action field is a
+  // dropdown fed by /api/cobrun-actions instead of free text.
+  cobrunActions: boolean;
+  // Same for the priority catalog (COBRUN_PRIORITY_LIST_URL set server-side
+  // → Priority dropdown fed by /api/cobrun-priorities).
+  cobrunPriorities: boolean;
+  // Name in the bottom-right "by <name>" corner credit (BY_NAME server-side).
+  // Empty → the UI falls back to its built-in default.
+  byName: string;
 };
 
 type StoreState = {
@@ -260,7 +270,7 @@ export const useStore = create<StoreState>()(
       templatesError: null,
       blocks: [],
       pendingEditId: null,
-      config: { kibanaUrl: '', indexPattern: '*', dataViewId: '', ready: false, templatesRemote: false, templatesRemoteName: '', cobrun: false, cobrunAuth: false, cobrunDeleteAuth: false },
+      config: { kibanaUrl: '', indexPattern: '*', dataViewId: '', ready: false, templatesRemote: false, templatesRemoteName: '', cobrun: false, cobrunAuth: false, cobrunDeleteAuth: false, cobrunActions: false, cobrunPriorities: false, byName: '' },
       autoCount: readStoredAutoCount(),
       queryTitle: '',
 
@@ -291,6 +301,9 @@ export const useStore = create<StoreState>()(
               cobrun: Boolean(cfg.cobrun),
               cobrunAuth: Boolean(cfg.cobrunAuth),
               cobrunDeleteAuth: Boolean(cfg.cobrunDeleteAuth),
+              cobrunActions: Boolean(cfg.cobrunActions),
+              cobrunPriorities: Boolean(cfg.cobrunPriorities),
+              byName: cfg.byName ?? '',
             },
           });
         } catch {

@@ -11,6 +11,11 @@ const HISTORY_KEY = 'elastix-cobrun-history';
 const HISTORY_MAX = 50;
 
 const DEFAULT_RATE = 200;
+const DEFAULT_PRIORITY = 1;
+
+// Catalog actions with their own dropdown color: delete is rose (danger),
+// these are blue. Compared lowercase.
+const BLUE_ACTIONS = new Set(['mq-send', 'artifact']);
 
 type HistoryEntry = {
   at: string; // ISO timestamp of the send
@@ -18,6 +23,8 @@ type HistoryEntry = {
   title: string;
   user: string;
   rate: number;
+  // Optional like query — entries saved before priority existed lack it.
+  priority?: number;
   // The query that was sent — viewable from the history list. Optional so
   // entries saved before this field existed still render (without the button).
   query?: Record<string, unknown>;
@@ -85,6 +92,16 @@ type CountState =
   | { kind: 'ok'; count: number }
   | { kind: 'err'; message: string };
 
+// Catalog fetched from /api/cobrun-actions or /api/cobrun-priorities
+// (→ COBRUN_ACTION_LIST_URL / COBRUN_PRIORITY_LIST_URL). 'none' = the URL
+// isn't configured server-side — the field stays a free input instead of a
+// dropdown.
+type CatalogState<T> =
+  | { kind: 'none' }
+  | { kind: 'loading' }
+  | { kind: 'ok'; items: T[] }
+  | { kind: 'err'; message: string };
+
 // Same normalisation as CountDocs — ES nests { error: { type, reason } },
 // our middleware returns { error: "message" }.
 function errorMessage(error: unknown): string {
@@ -99,7 +116,7 @@ function errorMessage(error: unknown): string {
 }
 
 // Header button + modal. Three steps by design:
-//   1. form — action / title / rate / user (+ recent-runs history).
+//   1. form — action / title / priority / rate / user (+ recent-runs history).
 //   2. review — shows the EXACT JSON that will be POSTed to /api/cobrun
 //      (→ COBRUN_URL server-side) plus the live doc count of the query;
 //      nothing is sent before this screen.
@@ -119,7 +136,14 @@ export function CreateCobrun() {
   // Title actually sent: typed title, or "{current time} {action}" when left
   // blank — resolved when leaving the form so preview and send match.
   const [resolvedTitle, setResolvedTitle] = useState('');
+  const [priority, setPriority] = useState(String(DEFAULT_PRIORITY));
   const [rate, setRate] = useState(String(DEFAULT_RATE));
+  const [actionsState, setActionsState] = useState<CatalogState<string>>({ kind: 'none' });
+  const [prioritiesState, setPrioritiesState] = useState<CatalogState<number>>({ kind: 'none' });
+  // Custom combobox dropdown for the Action field (catalog mode only):
+  // whether the suggestion list is open and which row the keyboard highlights.
+  const [actionListOpen, setActionListOpen] = useState(false);
+  const [actionHighlight, setActionHighlight] = useState(0);
   const [user, setUser] = useState('');
   const [password, setPassword] = useState('');
   // Destructive-action guard: the confirm step requires typing "delete".
@@ -137,8 +161,34 @@ export function CreateCobrun() {
 
   const rateNum = Number(rate);
   const rateValid = rate.trim() !== '' && Number.isFinite(rateNum) && rateNum > 0;
+  const priorityNum = Number(priority);
+  const priorityValid = priority.trim() !== '' && Number.isFinite(priorityNum);
+  // With a loaded action catalog the field is free to type into, but the
+  // typed value must match a catalog entry (case-insensitive) — the catalog's
+  // canonical spelling is what gets sent.
+  const catalogAction =
+    actionsState.kind === 'ok'
+      ? actionsState.items.find((a) => a.toLowerCase() === action.trim().toLowerCase()) ?? null
+      : null;
+  const actionValue = catalogAction ?? action.trim();
+  const actionValid =
+    actionsState.kind === 'none' ? action.trim().length > 0 : catalogAction !== null;
+  // Suggestions = catalog entries containing the typed text (all when blank).
+  const actionSuggestions =
+    actionsState.kind === 'ok'
+      ? actionsState.items.filter((a) => a.toLowerCase().includes(action.trim().toLowerCase()))
+      : [];
+  // The highlight can point past the end after the filter shrinks — clamp it.
+  const actionHighlightClamped = actionSuggestions.length
+    ? Math.min(actionHighlight, actionSuggestions.length - 1)
+    : 0;
+
+  const pickAction = (a: string) => {
+    setAction(a);
+    setActionListOpen(false);
+  };
   // Title is optional — blank auto-titles with time + action.
-  const canReview = action.trim().length > 0 && user.trim().length > 0 && rateValid;
+  const canReview = actionValid && user.trim().length > 0 && rateValid && priorityValid;
 
   const isDelete = action.trim().toLowerCase() === 'delete';
   const deleteConfirmed = confirmText.trim().toLowerCase() === 'delete';
@@ -151,13 +201,50 @@ export function CreateCobrun() {
   const usesDeletePassword = isDelete && config.cobrunDeleteAuth;
   const passwordOk = !passwordRequired || password.trim().length > 0;
 
+  // "total" is part of the service contract — always 0 on creation.
   const body = {
-    action: action.trim(),
+    actions: [actionValue],
     title: resolvedTitle,
+    priority: priorityNum,
     query: innerQuery,
     options: { entitiesPerSecond: rateNum },
     user: user.trim(),
+    total: 0,
   };
+
+  // The catalogs of allowed actions / priorities, proxied from
+  // COBRUN_ACTION_LIST_URL / COBRUN_PRIORITY_LIST_URL. Re-fetched on every
+  // modal open so a changed catalog needs no reload.
+  async function fetchCatalog<T>(
+    path: string,
+    key: 'actions' | 'priorities',
+    keep: (v: unknown) => v is T,
+    set: (s: CatalogState<T>) => void
+  ) {
+    set({ kind: 'loading' });
+    try {
+      const res = await fetch(path);
+      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const list = data[key];
+      if (res.ok && Array.isArray(list)) {
+        set({ kind: 'ok', items: list.filter(keep) });
+      } else {
+        set({ kind: 'err', message: errorMessage(data.error) || `HTTP ${res.status}` });
+      }
+    } catch (err) {
+      set({ kind: 'err', message: (err as Error).message });
+    }
+  }
+
+  const fetchActions = () =>
+    fetchCatalog('/api/cobrun-actions', 'actions', (v): v is string => typeof v === 'string', setActionsState);
+  const fetchPriorities = () =>
+    fetchCatalog(
+      '/api/cobrun-priorities',
+      'priorities',
+      (v): v is number => typeof v === 'number' && Number.isFinite(v),
+      setPrioritiesState
+    );
 
   const openModal = () => {
     setAction('');
@@ -171,6 +258,15 @@ export function CreateCobrun() {
     setSendState({ kind: 'idle' });
     setCountState({ kind: 'idle' });
     setHistory(readHistory());
+    if (config.cobrunActions) void fetchActions();
+    else setActionsState({ kind: 'none' });
+    setActionListOpen(false);
+    setActionHighlight(0);
+    // With a priority catalog the field starts unselected (like Action);
+    // free-input mode keeps the prefilled default.
+    setPriority(config.cobrunPriorities ? '' : String(DEFAULT_PRIORITY));
+    if (config.cobrunPriorities) void fetchPriorities();
+    else setPrioritiesState({ kind: 'none' });
     setOpen(true);
   };
 
@@ -212,6 +308,15 @@ export function CreateCobrun() {
     setOpen(false);
   };
 
+  // Keep the keyboard-highlighted suggestion visible while arrowing through
+  // a list taller than the dropdown.
+  useEffect(() => {
+    if (!actionListOpen) return;
+    document
+      .getElementById(`cobrun-action-opt-${actionHighlightClamped}`)
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [actionListOpen, actionHighlightClamped]);
+
   // Live doc count for the query — shown on every pre-send screen so the
   // scope of the run is visible before anything is sent.
   const fetchCount = async () => {
@@ -235,7 +340,7 @@ export function CreateCobrun() {
 
   const goReview = () => {
     if (!canReview) return;
-    setResolvedTitle(title.trim() || defaultTitle(action));
+    setResolvedTitle(title.trim() || defaultTitle(actionValue));
     setStep('review');
     void fetchCount();
   };
@@ -283,10 +388,11 @@ export function CreateCobrun() {
       }
       const entry: HistoryEntry = {
         at: new Date().toISOString(),
-        action: body.action,
+        action: body.actions[0],
         title: body.title,
         user: body.user,
         rate: rateNum,
+        priority: body.priority,
         query: body.query,
       };
       const next = [entry, ...readHistory()].slice(0, HISTORY_MAX);
@@ -318,6 +424,21 @@ export function CreateCobrun() {
       />
     </div>
   );
+
+  // Inline warning + retry under a catalog dropdown whose fetch failed.
+  const catalogError = (state: CatalogState<unknown>, retry: () => void) =>
+    state.kind === 'err' && (
+      <span className="mt-1 flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-400">
+        ⚠ {state.message}
+        <button
+          type="button"
+          onClick={retry}
+          className="rounded px-1 py-0.5 font-medium underline hover:bg-amber-50 dark:hover:bg-amber-950"
+        >
+          retry
+        </button>
+      </span>
+    );
 
   const errBanner = sendState.kind === 'err' && (
     <div className="shrink-0 border-t border-rose-300 bg-rose-50 px-4 py-2 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
@@ -453,14 +574,140 @@ export function CreateCobrun() {
                     50-entry history. */}
                 <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
                 <label className={labelClass}>Action</label>
-                <input
-                  className={inputClass}
-                  value={action}
-                  onChange={(e) => setAction(e.target.value)}
-                  placeholder="e.g. rerun"
-                  spellCheck={false}
-                  autoFocus
-                />
+                {/* COBRUN_ACTION_LIST_URL configured → typeable combobox with
+                    a custom suggestion dropdown (browser datalist looks too
+                    native); typing filters, ↑/↓ + Enter or click picks, and
+                    only a value matching the catalog unlocks Review. Not
+                    configured → plain free text. */}
+                <div className="relative">
+                  <input
+                    className={`${inputClass} ${actionsState.kind === 'ok' ? 'pr-8' : ''}`}
+                    value={action}
+                    onChange={(e) => {
+                      setAction(e.target.value);
+                      setActionListOpen(true);
+                      setActionHighlight(0);
+                    }}
+                    onFocus={() => actionsState.kind === 'ok' && setActionListOpen(true)}
+                    onClick={() => actionsState.kind === 'ok' && setActionListOpen(true)}
+                    onBlur={() => setActionListOpen(false)}
+                    onKeyDown={(e) => {
+                      if (actionsState.kind !== 'ok') return;
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (!actionListOpen) setActionListOpen(true);
+                        else if (actionSuggestions.length)
+                          setActionHighlight((actionHighlightClamped + 1) % actionSuggestions.length);
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (actionSuggestions.length)
+                          setActionHighlight(
+                            (actionHighlightClamped - 1 + actionSuggestions.length) % actionSuggestions.length
+                          );
+                      } else if (e.key === 'Enter') {
+                        // Pick instead of submitting the form while the list
+                        // is open; the next Enter (list closed) submits.
+                        if (actionListOpen && actionSuggestions.length) {
+                          e.preventDefault();
+                          pickAction(actionSuggestions[actionHighlightClamped]);
+                        }
+                      } else if (e.key === 'Escape' && actionListOpen) {
+                        // Close just the list — stop it reaching the modal's
+                        // window-level Escape (which closes the whole modal).
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setActionListOpen(false);
+                      }
+                    }}
+                    disabled={actionsState.kind === 'loading'}
+                    placeholder={
+                      actionsState.kind === 'loading'
+                        ? 'Loading actions…'
+                        : actionsState.kind === 'ok'
+                        ? 'type or pick an action'
+                        : 'e.g. rerun'
+                    }
+                    role={actionsState.kind === 'ok' ? 'combobox' : undefined}
+                    aria-expanded={actionsState.kind === 'ok' ? actionListOpen : undefined}
+                    spellCheck={false}
+                    autoComplete="off"
+                    autoFocus
+                  />
+                  {actionsState.kind === 'ok' && (
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      aria-label={actionListOpen ? 'Hide actions' : 'Show actions'}
+                      // mousedown (not click) + preventDefault so the input
+                      // keeps focus and its blur doesn't close-then-reopen.
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setActionListOpen((v) => !v);
+                      }}
+                      className="absolute inset-y-0 right-0 mt-1 flex w-8 items-center justify-center text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className={`h-3.5 w-3.5 transition-transform ${actionListOpen ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    </button>
+                  )}
+                  {actionListOpen && actionsState.kind === 'ok' && (
+                    <div className="drop-in absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-neutral-200 bg-white shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
+                      {actionSuggestions.length > 0 ? (
+                        <ul role="listbox" className="max-h-44 overflow-auto py-1">
+                          {actionSuggestions.map((a, i) => (
+                            <li key={a}>
+                              <button
+                                type="button"
+                                id={`cobrun-action-opt-${i}`}
+                                role="option"
+                                aria-selected={i === actionHighlightClamped}
+                                // mousedown + preventDefault: the input's
+                                // blur would otherwise close the list before
+                                // click.
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  pickAction(a);
+                                }}
+                                onMouseEnter={() => setActionHighlight(i)}
+                                className={`block w-full truncate px-3 py-1.5 text-left text-sm ${
+                                  i === actionHighlightClamped
+                                    ? 'bg-violet-50 text-violet-800 dark:bg-violet-950 dark:text-violet-300'
+                                    : a.toLowerCase() === 'delete'
+                                    ? 'text-rose-600 dark:text-rose-400'
+                                    : BLUE_ACTIONS.has(a.toLowerCase())
+                                    ? 'text-blue-600 dark:text-blue-400'
+                                    : 'text-neutral-700 dark:text-neutral-200'
+                                }`}
+                              >
+                                {a}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="px-3 py-2 text-xs text-neutral-400 dark:text-neutral-500">
+                          No matching actions
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {actionsState.kind === 'ok' && action.trim() !== '' && !catalogAction && (
+                  <span className="mt-1 text-[11px] text-amber-700 dark:text-amber-400">
+                    Must match one of the listed actions.
+                  </span>
+                )}
+                {catalogError(actionsState, () => void fetchActions())}
                 {isDelete && (
                   <span className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">
                     Delete action — an extra confirmation with the impacted doc count follows.
@@ -472,12 +719,48 @@ export function CreateCobrun() {
                   className={inputClass}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder={defaultTitle(action.trim() || '<action>')}
+                  placeholder={defaultTitle(actionValue || '<action>')}
                   spellCheck={false}
                 />
                 <span className="mt-1 text-[11px] text-neutral-400 dark:text-neutral-500">
                   Left blank → auto-titled dd_MM_action.
                 </span>
+
+                <label className={`mt-3 ${labelClass}`}>Priority</label>
+                {/* COBRUN_PRIORITY_LIST_URL configured → dropdown limited to
+                    the catalog (values arrive as numbers from the proxy).
+                    Not configured → free numeric input. */}
+                {prioritiesState.kind === 'none' ? (
+                  <input
+                    className={`${inputClass} font-mono`}
+                    type="number"
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    placeholder={String(DEFAULT_PRIORITY)}
+                  />
+                ) : (
+                  <select
+                    className={`${inputClass} font-mono`}
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    disabled={prioritiesState.kind !== 'ok'}
+                  >
+                    <option value="" disabled>
+                      {prioritiesState.kind === 'loading'
+                        ? 'Loading priorities…'
+                        : prioritiesState.kind === 'err'
+                        ? 'Could not load priorities'
+                        : 'Select a priority…'}
+                    </option>
+                    {prioritiesState.kind === 'ok' &&
+                      prioritiesState.items.map((p) => (
+                        <option key={p} value={String(p)}>
+                          {p}
+                        </option>
+                      ))}
+                  </select>
+                )}
+                {catalogError(prioritiesState, () => void fetchPriorities())}
 
                 <label className={`mt-3 ${labelClass}`}>Rate (entities per second)</label>
                 <input
@@ -545,7 +828,19 @@ export function CreateCobrun() {
                           <span className="min-w-0 truncate text-neutral-700 dark:text-neutral-200" title={h.title}>
                             {h.title}
                           </span>
-                          <span className="ml-auto shrink-0 font-mono text-neutral-400 dark:text-neutral-500">
+                          {h.priority !== undefined && (
+                            <span
+                              className="ml-auto shrink-0 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-px font-mono text-[10px] text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                              title={`Priority ${h.priority}`}
+                            >
+                              P{h.priority}
+                            </span>
+                          )}
+                          <span
+                            className={`shrink-0 font-mono text-neutral-400 dark:text-neutral-500 ${
+                              h.priority === undefined ? 'ml-auto' : ''
+                            }`}
+                          >
                             {h.rate}/s
                           </span>
                           <button
@@ -586,7 +881,7 @@ export function CreateCobrun() {
                   <button
                     type="submit"
                     disabled={!canReview}
-                    title={canReview ? 'See the exact body before sending' : 'Fill in action, a positive rate and user name'}
+                    title={canReview ? 'See the exact body before sending' : 'Fill in action, priority, a positive rate and user name'}
                     className="rounded-md bg-violet-600 px-3 py-1 text-xs font-medium text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:bg-neutral-300 dark:disabled:bg-neutral-700 dark:disabled:text-neutral-500"
                   >
                     Review body →

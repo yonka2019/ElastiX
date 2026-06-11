@@ -6,8 +6,20 @@
 //   browser → POST /api/cobrun
 //   server  → POST ${COBRUN_URL}
 // Body shape (assembled by the browser, see CreateCobrun.tsx):
-//   { "action": "...", "title": "...", "query": { ...generated query... },
-//     "options": { "entitiesPerSecond": 200 }, "user": "..." }
+//   { "actions": ["..."], "title": "...", "priority": 1,
+//     "query": { ...generated query... },
+//     "options": { "entitiesPerSecond": 200 }, "user": "...", "total": 0 }
+// ("total" is always 0 on creation — part of the service contract.)
+//
+// Catalog endpoints — when the env URL is configured, the matching form
+// field becomes a dropdown limited to the catalog; unset → 404 and the
+// field stays free input:
+//   GET /api/cobrun-actions    → ${COBRUN_ACTION_LIST_URL}
+//     upstream answers a JSON array of action names, e.g. ["rerun", "delete"]
+//     → normalised to { "actions": [...] }
+//   GET /api/cobrun-priorities → ${COBRUN_PRIORITY_LIST_URL}
+//     upstream answers a JSON array of numbers, e.g. [1, 2, 3]
+//     → normalised to { "priorities": [...] }
 //
 // Server-side var (NOT VITE_-prefixed): the URL is read from the container
 // env at runtime — set it like TEMPLATES_REMOTE_URL, no rebuild — and the
@@ -30,6 +42,9 @@ export function makeCobrunHandler(env) {
   // body with action "delete" must carry THIS password — the regular one is
   // rejected. Unset → deletes fall back to the regular password rule.
   const deletePassword = (env.COBRUN_DELETE_PASSWORD || '').trim();
+  // Optional catalog URLs — see the catalog-endpoints note above.
+  const actionListUrl = (env.COBRUN_ACTION_LIST_URL || '').trim();
+  const priorityListUrl = (env.COBRUN_PRIORITY_LIST_URL || '').trim();
 
   function json(res, status, body) {
     res.statusCode = status;
@@ -68,9 +83,12 @@ export function makeCobrunHandler(env) {
       }
       // Delete actions check against the delete password when one is set;
       // everything else (and deletes without a dedicated password) uses the
-      // regular one.
-      const isDelete =
-        typeof parsed?.action === 'string' && parsed.action.trim().toLowerCase() === 'delete';
+      // regular one. The body carries "actions" (array); the legacy singular
+      // "action" is still checked so an old client can't bypass the gate.
+      const actionNames = Array.isArray(parsed?.actions) ? parsed.actions : [parsed?.action];
+      const isDelete = actionNames.some(
+        (a) => typeof a === 'string' && a.trim().toLowerCase() === 'delete'
+      );
       const required = isDelete ? deletePassword || password : password;
       if (required) {
         const given = (req.headers['x-cobrun-password'] ?? '').toString();
@@ -99,5 +117,67 @@ export function makeCobrunHandler(env) {
     }
   }
 
-  return { handleCobrun };
+  // Both catalogs are the same GET-only proxy, differing only in the source
+  // URL, the response key and how items are validated/normalised: `pick`
+  // maps a raw upstream item to a clean one, or null to drop it.
+  function makeCatalogHandler({ catalogUrl, envName, key, label, pick }) {
+    return async function handleCatalog(req, res) {
+      if (req.method !== 'GET') {
+        res.setHeader('allow', 'GET');
+        return json(res, 405, { error: 'GET only' });
+      }
+      if (!catalogUrl) {
+        return json(res, 404, { error: `Cobrun ${label} list not configured. Set ${envName}.` });
+      }
+      try {
+        const headers = { accept: 'application/json' };
+        if (authToken) headers.authorization = `Bearer ${authToken}`;
+        const upstream = await fetch(catalogUrl, { headers });
+        const text = await upstream.text();
+        if (upstream.status === 401 || upstream.status === 403) {
+          return json(res, 502, {
+            error: `Cobrun ${label} list auth failed (HTTP ${upstream.status})${authToken ? '' : ' — set COBRUN_TOKEN'}`,
+          });
+        }
+        if (!upstream.ok) {
+          return json(res, 502, { error: `Cobrun ${label} list failed (HTTP ${upstream.status})` });
+        }
+        let list;
+        try {
+          list = JSON.parse(text);
+        } catch {
+          return json(res, 502, { error: `Cobrun ${label} list returned invalid JSON.` });
+        }
+        if (!Array.isArray(list)) {
+          return json(res, 502, { error: `Cobrun ${label} list must be a JSON array.` });
+        }
+        json(res, 200, { [key]: list.map(pick).filter((v) => v !== null) });
+      } catch (err) {
+        json(res, 502, { error: `Cobrun ${label} list request failed: ${err.message}` });
+      }
+    };
+  }
+
+  const handleCobrunActions = makeCatalogHandler({
+    catalogUrl: actionListUrl,
+    envName: 'COBRUN_ACTION_LIST_URL',
+    key: 'actions',
+    label: 'action',
+    pick: (a) => (typeof a === 'string' ? a : null),
+  });
+  const handleCobrunPriorities = makeCatalogHandler({
+    catalogUrl: priorityListUrl,
+    envName: 'COBRUN_PRIORITY_LIST_URL',
+    key: 'priorities',
+    label: 'priority',
+    // Upstream may answer numbers or numeric strings (["1", "2"]) — the
+    // browser always receives numbers (the cobrun body's priority must be
+    // a number).
+    pick: (p) => {
+      const n = typeof p === 'string' ? Number(p.trim()) : p;
+      return typeof n === 'number' && Number.isFinite(n) ? n : null;
+    },
+  });
+
+  return { handleCobrun, handleCobrunActions, handleCobrunPriorities };
 }
