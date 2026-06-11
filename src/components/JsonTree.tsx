@@ -1,11 +1,16 @@
 import { useState, type ReactNode } from 'react';
 
-type Props = { value: unknown };
+type Props = {
+  value: unknown;
+  // Top-level object keys that render collapsed initially (still expandable).
+  // Only applies one level deep — deeper keys with the same name stay open.
+  defaultCollapsedKeys?: string[];
+};
 
-export function JsonTree({ value }: Props) {
+export function JsonTree({ value, defaultCollapsedKeys }: Props) {
   return (
     <div className="font-mono text-[12px] leading-relaxed text-neutral-800 dark:text-neutral-200">
-      <Node value={value} depth={0} isLast />
+      <Node value={value} depth={0} isLast defaultCollapsedKeys={defaultCollapsedKeys} />
     </div>
   );
 }
@@ -15,11 +20,13 @@ function Node({
   depth,
   isLast,
   keyLabel,
+  defaultCollapsedKeys,
 }: {
   value: unknown;
   depth: number;
   isLast: boolean;
   keyLabel?: string;
+  defaultCollapsedKeys?: string[];
 }) {
   const pad = { paddingLeft: depth * 12 };
   const comma = isLast ? '' : ',';
@@ -29,7 +36,7 @@ function Node({
   if (typeof value === 'number') return <Line pad={pad} keyLabel={keyLabel}><Num v={value} />{comma}</Line>;
   if (typeof value === 'string') return <Line pad={pad} keyLabel={keyLabel}><Str v={value} />{comma}</Line>;
   if (Array.isArray(value)) return <ArrayNode arr={value} depth={depth} comma={comma} keyLabel={keyLabel} />;
-  if (typeof value === 'object') return <ObjectNode obj={value as Record<string, unknown>} depth={depth} comma={comma} keyLabel={keyLabel} />;
+  if (typeof value === 'object') return <ObjectNode obj={value as Record<string, unknown>} depth={depth} comma={comma} keyLabel={keyLabel} defaultCollapsedKeys={defaultCollapsedKeys} />;
   return <Line pad={pad} keyLabel={keyLabel}><span className="text-neutral-400">{String(value)}</span>{comma}</Line>;
 }
 
@@ -63,13 +70,17 @@ function ObjectNode({
   depth,
   comma,
   keyLabel,
+  defaultCollapsedKeys,
 }: {
   obj: Record<string, unknown>;
   depth: number;
   comma: string;
   keyLabel?: string;
+  defaultCollapsedKeys?: string[];
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(
+    !(keyLabel !== undefined && defaultCollapsedKeys?.includes(keyLabel))
+  );
   const keys = Object.keys(obj);
   const empty = keys.length === 0;
   const pad = { paddingLeft: depth * 12 };
@@ -104,7 +115,16 @@ function ObjectNode({
       {(open || !showToggle) && (
         <>
           {keys.map((k, i) => (
-            <Node key={k} value={obj[k]} depth={depth + 1} isLast={i === keys.length - 1} keyLabel={k} />
+            <Node
+              key={k}
+              value={obj[k]}
+              depth={depth + 1}
+              isLast={i === keys.length - 1}
+              keyLabel={k}
+              // One level only: the root object hands the list to its direct
+              // children; it stops propagating below that.
+              defaultCollapsedKeys={depth === 0 ? defaultCollapsedKeys : undefined}
+            />
           ))}
           <div style={pad} className="whitespace-pre flex items-start">
             <ToggleSpacer />

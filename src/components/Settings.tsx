@@ -1,15 +1,75 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { useTheme, LIGHT_TINTS, DARK_TINTS } from '../utils/theme';
+import { titleSlug } from '../utils/ids';
+import type { ModeBlock } from '../types';
 
-// Header settings flyout: auto doc-count preference + theme mode/tints.
+// Header settings flyout: builder-state import/export, auto doc-count
+// preference, and theme mode/tints.
 export function Settings() {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const config = useStore((s) => s.config);
   const autoCount = useStore((s) => s.autoCount);
   const setAutoCount = useStore((s) => s.setAutoCount);
+  const blocks = useStore((s) => s.blocks);
+  const replaceBlocks = useStore((s) => s.replaceBlocks);
+  const queryTitle = useStore((s) => s.queryTitle);
+  const setQueryTitle = useStore((s) => s.setQueryTitle);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [ioError, setIoError] = useState<string | null>(null);
   const { theme, setTheme, lightTint, darkTint, setLightTint, setDarkTint } = useTheme();
+
+  // Moved here from the header — same .elastix state round-trip as before.
+  const exportState = () => {
+    const payload = {
+      kind: 'elastix-state' as const,
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      title: queryTitle.trim(),
+      blocks,
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    const slug = titleSlug(queryTitle);
+    a.href = url;
+    a.download = `elastix-state-${slug ? `${slug}-` : ''}${date}.elastix`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const importState = async (file: File) => {
+    setIoError(null);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text) as { kind?: string; blocks?: unknown; title?: unknown };
+      if (data.kind !== 'elastix-state') {
+        setIoError('Not an ElastiX state export. To import a raw query JSON, use the Import button next to "Generated Query".');
+        return;
+      }
+      if (!Array.isArray(data.blocks)) {
+        setIoError('Export is malformed: "blocks" must be an array.');
+        return;
+      }
+      if (blocks.length > 0) {
+        const ok = window.confirm(
+          'Replace the current builder with imported state? Your current blocks will be lost.'
+        );
+        if (!ok) return;
+      }
+      replaceBlocks(data.blocks as ModeBlock[]);
+      // Pre-title exports have no `title` — clear the current one so the
+      // imported state fully replaces what was on screen.
+      setQueryTitle(typeof data.title === 'string' ? data.title : '');
+    } catch (err) {
+      setIoError(`Failed to import: ${(err as Error).message}`);
+    }
+  };
 
   // Close on outside click / Escape.
   useEffect(() => {
@@ -59,6 +119,63 @@ export function Settings() {
 
       {open && (
         <div className="modal-pop absolute right-0 top-full z-50 mt-2 w-72 rounded-lg border border-neutral-200 bg-white p-3 shadow-xl dark:border-neutral-700 dark:bg-neutral-900">
+          {/* ── Builder state ── */}
+          <div className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
+            Builder state
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              onClick={exportState}
+              disabled={blocks.length === 0}
+              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2 py-1.5 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800 dark:disabled:text-neutral-500"
+              title="Download the current builder state as an .elastix file"
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M12 3v12" />
+                <path d="M7 10l5 5 5-5" />
+                <path d="M5 21h14" />
+              </svg>
+              Export
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2 py-1.5 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
+              title="Load builder state from an .elastix file"
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M12 21V9" />
+                <path d="M7 14l5-5 5 5" />
+                <path d="M5 3h14" />
+              </svg>
+              Import
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".elastix"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void importState(f);
+              e.target.value = '';
+            }}
+          />
+          {ioError && (
+            <div className="mt-2 flex items-start gap-2 rounded-md border border-rose-200 bg-rose-50 px-2 py-1.5 text-[11px] text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
+              <span className="min-w-0 break-words">{ioError}</span>
+              <button
+                onClick={() => setIoError(null)}
+                className="ml-auto shrink-0 rounded p-0.5 hover:bg-rose-100 dark:hover:bg-rose-900"
+                aria-label="Dismiss import error"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          <div className="my-3 h-px bg-neutral-200 dark:bg-neutral-800" />
+
           {/* ── Docs count ── */}
           <div className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400 dark:text-neutral-500">
             Docs count

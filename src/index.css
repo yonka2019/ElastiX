@@ -304,3 +304,22 @@ html.dark .query-headline-flow {
   100% { opacity: 1; transform: translateY(0); }
 }
 .count-pop { animation: count-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* ─── Cobrun sent — success banner spring-in + self-drawing checkmark ────
+   The banner rises with a slight overshoot while the ✓ strokes itself in
+   (dashoffset sweep, delayed so it lands after the banner settles).
+   One-shot: both elements mount with the banner on a successful send. */
+@keyframes cobrun-sent-banner {
+  0%   { opacity: 0; transform: translateY(10px) scale(0.97); }
+  60%  { opacity: 1; transform: translateY(-2px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.cobrun-sent { animation: cobrun-sent-banner 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes cobrun-check-draw {
+  from { stroke-dashoffset: 24; }
+  to   { stroke-dashoffset: 0; }
+}
+.cobrun-check {
+  stroke-dasharray: 24;
+  animation: cobrun-check-draw 0.45s ease-out 0.2s backwards;
+}

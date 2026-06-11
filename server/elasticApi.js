@@ -30,6 +30,14 @@ export function makeElasticHandlers(env) {
   // Display name of the remote service, shown in the button ("Fetch from
   // <name>"). Empty → the UI falls back to "remote".
   const templatesRemoteName = (env.TEMPLATES_REMOTE_NAME || '').trim();
+  // Whether the cobrun proxy is configured (see cobrunApi.js). Gates the
+  // header's "Create Cobrun" button at runtime.
+  const cobrun = Boolean((env.COBRUN_URL || '').trim());
+  // Whether sending a cobrun requires a password (COBRUN_PASSWORD). Only the
+  // boolean reaches the browser — the password itself stays server-side.
+  const cobrunAuth = Boolean((env.COBRUN_PASSWORD || '').trim());
+  // Whether delete cobruns have their own password (COBRUN_DELETE_PASSWORD).
+  const cobrunDeleteAuth = Boolean((env.COBRUN_DELETE_PASSWORD || '').trim());
 
   function json(res, status, body) {
     res.statusCode = status;
@@ -47,7 +55,7 @@ export function makeElasticHandlers(env) {
   }
 
   function handleConfig(_req, res) {
-    json(res, 200, { kibanaUrl, indexPattern, dataViewId, ready, templatesRemote, templatesRemoteName });
+    json(res, 200, { kibanaUrl, indexPattern, dataViewId, ready, templatesRemote, templatesRemoteName, cobrun, cobrunAuth, cobrunDeleteAuth });
   }
 
   async function handleCount(req, res) {

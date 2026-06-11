@@ -44,6 +44,19 @@ const server = http.createServer((req, res) => {
   const name = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
   res.setHeader('content-type', 'application/json');
   console.log(`[mock-remote] ${req.method} ${url.pathname} -> name="${name}"`);
+  // Mock cobrun intake (COBRUN_URL=http://localhost:4555/cobrun): echo the
+  // body back so the UI's success chip shows what was received.
+  if (req.method === 'POST' && name === 'cobrun') {
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => {
+      const raw = Buffer.concat(chunks).toString('utf8');
+      console.log(`[mock-remote] cobrun body: ${raw}`);
+      res.statusCode = 200;
+      res.end(JSON.stringify({ ok: true, id: 'cobrun-mock-1', received: JSON.parse(raw || '{}') }));
+    });
+    return;
+  }
   if (!name) {
     res.statusCode = 400;
     res.end(JSON.stringify({ error: 'name required in path' }));

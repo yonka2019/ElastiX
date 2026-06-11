@@ -48,6 +48,15 @@ export type ElastixConfig = {
   // Display name of the remote query service (TEMPLATES_REMOTE_NAME). Drives
   // the button label "Fetch from {name}". Empty → the UI defaults to "remote".
   templatesRemoteName: string;
+  // Whether the server has COBRUN_URL configured — gates the header's
+  // "Create Cobrun" button. Read at runtime from /api/config.
+  cobrun: boolean;
+  // Whether sending a cobrun requires a password (COBRUN_PASSWORD set
+  // server-side). Only this boolean reaches the browser.
+  cobrunAuth: boolean;
+  // Whether delete cobruns require their own separate password
+  // (COBRUN_DELETE_PASSWORD set server-side).
+  cobrunDeleteAuth: boolean;
 };
 
 type StoreState = {
@@ -251,7 +260,7 @@ export const useStore = create<StoreState>()(
       templatesError: null,
       blocks: [],
       pendingEditId: null,
-      config: { kibanaUrl: '', indexPattern: '*', dataViewId: '', ready: false, templatesRemote: false, templatesRemoteName: '' },
+      config: { kibanaUrl: '', indexPattern: '*', dataViewId: '', ready: false, templatesRemote: false, templatesRemoteName: '', cobrun: false, cobrunAuth: false, cobrunDeleteAuth: false },
       autoCount: readStoredAutoCount(),
       queryTitle: '',
 
@@ -279,6 +288,9 @@ export const useStore = create<StoreState>()(
               ready: Boolean(cfg.ready),
               templatesRemote: Boolean(cfg.templatesRemote),
               templatesRemoteName: cfg.templatesRemoteName ?? '',
+              cobrun: Boolean(cfg.cobrun),
+              cobrunAuth: Boolean(cfg.cobrunAuth),
+              cobrunDeleteAuth: Boolean(cfg.cobrunDeleteAuth),
             },
           });
         } catch {

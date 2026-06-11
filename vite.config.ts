@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { makeElasticHandlers } from './server/elasticApi.js';
 import { makeTemplatesHandler } from './server/templatesApi.js';
 import { makeTemplatesRemoteHandler } from './server/templatesRemoteApi.js';
+import { makeCobrunHandler } from './server/cobrunApi.js';
 
 // Dev-only middleware that exposes:
 //   GET  /api/config    → { kibanaUrl, indexPattern, ready }  for the frontend
@@ -15,6 +16,7 @@ function elasticDevApi(env: Record<string, string>): Plugin {
   const { handleConfig, handleCount } = makeElasticHandlers(env);
   const { handleTemplates } = makeTemplatesHandler(env);
   const { handleTemplatesRemote } = makeTemplatesRemoteHandler(env);
+  const { handleCobrun } = makeCobrunHandler(env);
   return {
     name: 'elastix:dev-api',
     configureServer(server: ViteDevServer) {
@@ -22,6 +24,7 @@ function elasticDevApi(env: Record<string, string>): Plugin {
       server.middlewares.use('/api/count', handleCount);
       server.middlewares.use('/api/templates', handleTemplates);
       server.middlewares.use('/api/templates-remote', handleTemplatesRemote);
+      server.middlewares.use('/api/cobrun', handleCobrun);
     },
   };
 }

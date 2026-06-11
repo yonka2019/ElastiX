@@ -23,6 +23,7 @@ import { Builder } from './components/Builder';
 import { QueryOutput } from './components/QueryOutput';
 import { Settings } from './components/Settings';
 import { CountDocs } from './components/CountDocs';
+import { CreateCobrun } from './components/CreateCobrun';
 import type { BoolMode, ModeBlock } from './types';
 import { MODE_META } from './types';
 import { PreviewProvider } from './utils/preview';
@@ -887,11 +888,8 @@ function Header() {
   const templates = useStore((s) => s.templates);
   const blocks = useStore((s) => s.blocks);
   const config = useStore((s) => s.config);
-  const replaceBlocks = useStore((s) => s.replaceBlocks);
   const queryTitle = useStore((s) => s.queryTitle);
   const setQueryTitle = useStore((s) => s.setQueryTitle);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [ioError, setIoError] = useState<string | null>(null);
 
   // Mirror the query title into the browser tab so a named query is
   // recognisable among multiple ElastiX tabs.
@@ -911,56 +909,6 @@ function Header() {
       ? buildDiscoverUrl(config.kibanaUrl, config.dataViewId, inner)
       : buildDevToolsUrl(config.kibanaUrl, config.indexPattern, inner);
     window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  const exportState = () => {
-    const payload = {
-      kind: 'elastix-state' as const,
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      title: queryTitle.trim(),
-      blocks,
-    };
-    const json = JSON.stringify(payload, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const date = new Date().toISOString().slice(0, 10);
-    const slug = titleSlug(queryTitle);
-    a.href = url;
-    a.download = `elastix-state-${slug ? `${slug}-` : ''}${date}.elastix`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  const importState = async (file: File) => {
-    setIoError(null);
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text) as { kind?: string; blocks?: unknown; title?: unknown };
-      if (data.kind !== 'elastix-state') {
-        setIoError('File is not an ElastiX state export. To import a raw query JSON, use the Import button next to "Generated Query" → Export.');
-        return;
-      }
-      if (!Array.isArray(data.blocks)) {
-        setIoError('Export is malformed: "blocks" must be an array.');
-        return;
-      }
-      if (blocks.length > 0) {
-        const ok = window.confirm(
-          'Replace the current builder with imported state? Your current blocks will be lost.'
-        );
-        if (!ok) return;
-      }
-      replaceBlocks(data.blocks as ModeBlock[]);
-      // Pre-title exports have no `title` — clear the current one so the
-      // imported state fully replaces what was on screen.
-      setQueryTitle(typeof data.title === 'string' ? data.title : '');
-    } catch (err) {
-      setIoError(`Failed to import: ${(err as Error).message}`);
-    }
   };
 
   return (
@@ -997,44 +945,6 @@ function Header() {
           className="min-w-0 max-w-xs flex-1 rounded-md border border-neutral-200 bg-transparent px-2 py-1 text-sm font-medium text-neutral-800 transition-colors placeholder:text-neutral-400 hover:border-neutral-300 focus:border-blue-300 focus:bg-white focus:outline-none dark:border-neutral-700/60 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:hover:border-neutral-600 dark:focus:border-blue-700 dark:focus:bg-neutral-950"
         />
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-          <button
-            onClick={exportState}
-            disabled={blocks.length === 0}
-            className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 shadow-sm transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800 dark:disabled:text-neutral-500"
-            title="Download the current builder state as an .elastix file"
-          >
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M12 3v12" />
-              <path d="M7 10l5 5 5-5" />
-              <path d="M5 21h14" />
-            </svg>
-            <span className="hidden sm:inline">Export</span>
-          </button>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
-            title="Load builder state from an .elastix file"
-          >
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M12 21V9" />
-              <path d="M7 14l5-5 5 5" />
-              <path d="M5 3h14" />
-            </svg>
-            <span className="hidden sm:inline">Import</span>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".elastix"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void importState(f);
-              e.target.value = '';
-            }}
-          />
-          {/* Divider between builder-state I/O and the Elastic actions. */}
-          <span aria-hidden className="mx-0.5 h-5 w-px bg-neutral-200 dark:bg-neutral-700" />
           <CountDocs />
           <button
             onClick={openInKibana}
@@ -1056,22 +966,10 @@ function Header() {
             </svg>
             <span className="hidden sm:inline">Open in Kibana</span>
           </button>
+          <CreateCobrun />
           <Settings />
         </div>
       </header>
-      {ioError && (
-        <div className="flex shrink-0 items-center gap-3 border-b border-rose-300 bg-rose-50 px-5 py-1.5 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
-          <span className="font-semibold">Import error:</span>
-          <span className="truncate">{ioError}</span>
-          <button
-            onClick={() => setIoError(null)}
-            className="ml-auto rounded p-0.5 hover:bg-rose-100 dark:hover:bg-rose-900"
-            aria-label="Dismiss"
-          >
-            ×
-          </button>
-        </div>
-      )}
     </>
   );
 }
